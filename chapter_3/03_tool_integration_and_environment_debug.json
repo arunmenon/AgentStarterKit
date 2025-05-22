@@ -1,0 +1,1880 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "id": "course-header",
+   "metadata": {},
+   "source": [
+    "# Module 3: Tool Integration and Environment Interaction
+    "*Building Agents That Connect to the Real World*
+    "
+    "**Learning Objectives:**
+    "- Connect agents to external APIs, databases, and services
+    "- Implement robust error handling and fallback strategies
+    "- Create dynamic tool discovery and integration systems
+    "- Build agents that can operate in complex, real-world environments
+    "
+    "**Duration:** 55 minutes
+    "
+    "**Prerequisites:** Modules 1 & 2 (Agent Foundations, Memory & Learning)
+    "
+    "---"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "tool-integration-intro",
+   "metadata": {},
+   "source": [
+    "## 🌍 Why Tool Integration Matters
+    "
+    "So far, we've built agents that can reason and remember. But **real agentic power comes from connecting to the external world**. Modern agents need to:
+    "
+    "### 🔌 Connect to Real Services
+    "- **APIs**: REST, GraphQL, WebSocket connections
+    "- **Databases**: SQL, NoSQL, vector databases
+    "- **Cloud Services**: AWS, Google Cloud, Azure
+    "- **Third-party Tools**: Slack, GitHub, Salesforce, etc.
+    "
+    "### 🛠️ Handle Complex Operations
+    "- **File Processing**: Read, write, analyze documents
+    "- **Data Analysis**: Query databases, generate reports
+    "- **Communication**: Send emails, post messages, make calls
+    "- **Automation**: Trigger workflows, schedule tasks
+    "
+    "### 🏗️ Adapt to Changing Environments
+    "- **Dynamic Discovery**: Find and integrate new tools
+    "- **Error Recovery**: Handle failures gracefully
+    "- **Rate Limiting**: Respect API constraints
+    "- **Authentication**: Manage credentials securely
+    "
+    "---
+    "
+    "## 🔧 Tool Integration Architecture
+    "
+    "A robust tool integration system consists of several layers:
+    "
+    "```
+    "┌─────────────────────────────────────┐
+    "│           Agent Core                │
+    "├─────────────────────────────────────┤
+    "│       Tool Manager Layer            │
+    "├─────────────────────────────────────┤
+    "│      Tool Abstraction Layer         │
+    "├─────────────────────────────────────┤
+    "│     Connection & Auth Layer         │
+    "├─────────────────────────────────────┤
+    "│    External Services & APIs         │
+    "└─────────────────────────────────────┘
+    "```
+    "
+    "Each layer provides:
+    "- **Abstraction** from implementation details
+    "- **Error handling** and recovery mechanisms
+    "- **Security** and authentication management
+    "- **Performance** optimization and caching"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "setup-imports",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Enhanced imports for tool integration
+    "import openai
+    "import requests
+    "import json
+    "import sqlite3
+    "import pandas as pd
+    "import time
+    "import asyncio
+    "import aiohttp
+    "from datetime import datetime, timedelta
+    "from typing import List, Dict, Any, Optional, Union, Callable
+    "from dataclasses import dataclass, field
+    "from enum import Enum
+    "from abc import ABC, abstractmethod
+    "import hashlib
+    "import os
+    "import logging
+    "from pathlib import Path
+    "import yaml
+    "import smtplib
+    "from email.mime.text import MIMEText
+    "from email.mime.multipart import MIMEMultipart
+    "import schedule
+    "from dotenv import load_dotenv
+    "
+    "# Load environment
+    "load_dotenv()
+    "
+    "# Setup logging
+    "logging.basicConfig(level=logging.INFO)
+    "logger = logging.getLogger(__name__)
+    "
+    "# Helper functions
+    "def print_section(title: str, content: str):
+    "    \"\"\"Enhanced section formatter with colors\"\"\"
+    "    print(f\"\\n{'='*60}\")
+    "    print(f\"🔧 {title}\")
+    "    print(f\"{'='*60}\")
+    "    print(content)
+    "    print(f\"{'='*60}\\n\")
+    "
+    "def print_tool_result(tool_name: str, input_data: str, result: str, success: bool = True):
+    "    \"\"\"Format tool execution results\"\"\"
+    "    status = \"✅\" if success else \"❌\"
+    "    print(f\"\\n{status} Tool: {tool_name}\")
+    "    print(f\"📥 Input: {input_data}\")
+    "    print(f\"📤 Result: {result}\")
+    "    print(\"-\" * 40)
+    "
+    "print(\"✅ Advanced tool integration environment ready!\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "tool-base-classes",
+   "metadata": {},
+   "source": [
+    "## 🏗️ Building the Tool Integration Framework
+    "
+    "Let's create a robust, extensible framework for tool integration that can handle real-world complexity."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "tool-framework",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Tool integration framework with robust error handling
+    "
+    "class ToolExecutionStatus(Enum):
+    "    \"\"\"Possible outcomes of tool execution\"\"\"
+    "    SUCCESS = \"success\"
+    "    FAILURE = \"failure\"
+    "    TIMEOUT = \"timeout\"
+    "    RATE_LIMITED = \"rate_limited\"
+    "    AUTH_ERROR = \"auth_error\"
+    "    RETRY_NEEDED = \"retry_needed\"
+    "
+    "@dataclass
+    "class ToolResult:
+    "    \"\"\"Comprehensive result object for tool execution\"\"\"
+    "    status: ToolExecutionStatus
+    "    data: Any = None
+    "    error: Optional[str] = None
+    "    execution_time: float = 0.0
+    "    metadata: Dict[str, Any] = field(default_factory=dict)
+    "    retry_count: int = 0
+    "    
+    "    @property
+    "    def is_success(self) -> bool:
+    "        return self.status == ToolExecutionStatus.SUCCESS
+    "    
+    "    @property
+    "    def needs_retry(self) -> bool:
+    "        return self.status in [ToolExecutionStatus.TIMEOUT, ToolExecutionStatus.RATE_LIMITED, ToolExecutionStatus.RETRY_NEEDED]
+    "
+    "@dataclass
+    "class ToolConfig:
+    "    \"\"\"Configuration for tool behavior\"\"\"
+    "    max_retries: int = 3
+    "    timeout_seconds: float = 30.0
+    "    rate_limit_delay: float = 1.0
+    "    cache_results: bool = True
+    "    cache_ttl: int = 300  # 5 minutes
+    "    auth_required: bool = False
+    "    environment: str = \"production\"
+    "
+    "class BaseTool(ABC):
+    "    \"\"\"Abstract base class for all tools with robust error handling\"\"\"
+    "    
+    "    def __init__(self, name: str, description: str, config: Optional[ToolConfig] = None):
+    "        self.name = name
+    "        self.description = description
+    "        self.config = config or ToolConfig()
+    "        self.execution_count = 0
+    "        self.success_count = 0
+    "        self.cache = {}  # Simple in-memory cache
+    "        self.last_execution = None
+    "    
+    "    async def execute_async(self, input_data: Any, **kwargs) -> ToolResult:
+    "        \"\"\"Execute tool with full error handling and retry logic\"\"\"
+    "        start_time = time.time()
+    "        self.execution_count += 1
+    "        
+    "        # Check cache first
+    "        if self.config.cache_results:
+    "            cache_key = self._generate_cache_key(input_data, kwargs)
+    "            cached_result = self._get_cached_result(cache_key)
+    "            if cached_result:
+    "                cached_result.metadata[\"from_cache\"] = True
+    "                return cached_result
+    "        
+    "        # Execute with retry logic
+    "        for attempt in range(self.config.max_retries + 1):
+    "            try:
+    "                # Rate limiting
+    "                if attempt > 0:
+    "                    await asyncio.sleep(self.config.rate_limit_delay * attempt)
+    "                
+    "                # Execute the actual tool logic
+    "                result = await self._execute_impl(input_data, **kwargs)
+    "                
+    "                if result.is_success:
+    "                    self.success_count += 1
+    "                    execution_time = time.time() - start_time
+    "                    result.execution_time = execution_time
+    "                    result.metadata[\"attempt\"] = attempt + 1
+    "                    
+    "                    # Cache successful results
+    "                    if self.config.cache_results:
+    "                        self._cache_result(cache_key, result)
+    "                    
+    "                    self.last_execution = datetime.now()
+    "                    return result
+    "                
+    "                elif not result.needs_retry or attempt >= self.config.max_retries:
+    "                    result.execution_time = time.time() - start_time
+    "                    result.retry_count = attempt
+    "                    return result
+    "                
+    "            except asyncio.TimeoutError:
+    "                if attempt >= self.config.max_retries:
+    "                    return ToolResult(
+    "                        status=ToolExecutionStatus.TIMEOUT,
+    "                        error=\"Tool execution timed out after retries\",
+    "                        execution_time=time.time() - start_time,
+    "                        retry_count=attempt
+    "                    )
+    "            
+    "            except Exception as e:
+    "                if attempt >= self.config.max_retries:
+    "                    return ToolResult(
+    "                        status=ToolExecutionStatus.FAILURE,
+    "                        error=f\"Tool execution failed: {str(e)}\",
+    "                        execution_time=time.time() - start_time,
+    "                        retry_count=attempt
+    "                    )
+    "        
+    "        # Should never reach here, but just in case
+    "        return ToolResult(
+    "            status=ToolExecutionStatus.FAILURE,
+    "            error=\"Unexpected execution path\",
+    "            execution_time=time.time() - start_time
+    "        )
+    "    
+    "    def execute(self, input_data: Any, **kwargs) -> ToolResult:
+    "        \"\"\"Synchronous wrapper for async execution\"\"\"
+    "        return asyncio.run(self.execute_async(input_data, **kwargs))
+    "    
+    "    @abstractmethod
+    "    async def _execute_impl(self, input_data: Any, **kwargs) -> ToolResult:
+    "        \"\"\"Implement the actual tool logic in subclasses\"\"\"
+    "        pass
+    "    
+    "    def _generate_cache_key(self, input_data: Any, kwargs: Dict) -> str:
+    "        \"\"\"Generate a cache key for the input\"\"\"
+    "        content = f\"{self.name}:{input_data}:{sorted(kwargs.items())}\"
+    "        return hashlib.md5(content.encode()).hexdigest()
+    "    
+    "    def _get_cached_result(self, cache_key: str) -> Optional[ToolResult]:
+    "        \"\"\"Get result from cache if valid\"\"\"
+    "        if cache_key in self.cache:
+    "            cached_data, timestamp = self.cache[cache_key]
+    "            if time.time() - timestamp < self.config.cache_ttl:
+    "                return cached_data
+    "            else:
+    "                del self.cache[cache_key]
+    "        return None
+    "    
+    "    def _cache_result(self, cache_key: str, result: ToolResult):
+    "        \"\"\"Cache a successful result\"\"\"
+    "        self.cache[cache_key] = (result, time.time())
+    "    
+    "    def get_stats(self) -> Dict[str, Any]:
+    "        \"\"\"Get tool execution statistics\"\"\"
+    "        success_rate = (self.success_count / self.execution_count * 100) if self.execution_count > 0 else 0
+    "        return {
+    "            "name": self.name,
+    "            "executions": self.execution_count,
+    "            "successes": self.success_count,
+    "            "success_rate": round(success_rate, 2),
+    "            "cache_size": len(self.cache),
+    "            "last_execution": self.last_execution.isoformat() if self.last_execution else None
+    "        },
+    "
+    "print(\"✅ Tool integration framework created!\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "database-tool",
+   "metadata": {},
+   "source": [
+    "## 🗄️ Real-World Tool Examples
+    "
+    "Let's implement several real-world tools that demonstrate different integration patterns:
+    "
+    "### 1. Database Query Tool
+    "Connects to databases and executes queries safely"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "database-tool-impl",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "class DatabaseTool(BaseTool):
+    "    \"\"\"Tool for executing database queries with safety checks\"\"\"
+    "    
+    "    def __init__(self, db_path: str = \":memory:\"):
+    "        super().__init__(
+    "            name=\"database_query\",
+    "            description=\"Execute SQL queries on database with safety checks\",
+    "            config=ToolConfig(cache_results=True, timeout_seconds=10.0)
+    "        )
+    "        self.db_path = db_path
+    "        self._setup_demo_data()
+    "    
+    "    def _setup_demo_data(self):
+    "        \"\"\"Create demo database with sample data\"\"\"
+    "        conn = sqlite3.connect(self.db_path)
+    "        cursor = conn.cursor()
+    "        
+    "        # Create tables
+    "        cursor.execute(\"\"\"
+    "        CREATE TABLE IF NOT EXISTS employees (
+    "            id INTEGER PRIMARY KEY,
+    "            name TEXT NOT NULL,
+    "            department TEXT,
+    "            salary INTEGER,
+    "            hire_date DATE
+    "        )
+    "        \"\"\")
+    "        
+    "        cursor.execute(\"\"\"
+    "        CREATE TABLE IF NOT EXISTS projects (
+    "            id INTEGER PRIMARY KEY,
+    "            name TEXT NOT NULL,
+    "            budget INTEGER,
+    "            status TEXT,
+    "            manager_id INTEGER,
+    "            FOREIGN KEY (manager_id) REFERENCES employees (id)
+    "        )
+    "        \"\"\")
+    "        
+    "        # Insert sample data
+    "        employees = [
+    "            (1, 'Alice Johnson', 'Engineering', 95000, '2022-01-15'),
+    "            (2, 'Bob Smith', 'Engineering', 87000, '2022-03-01'),
+    "            (3, 'Carol Davis', 'Marketing', 72000, '2021-11-20'),
+    "            (4, 'David Wilson', 'Sales', 68000, '2023-02-10'),
+    "            (5, 'Eve Brown', 'Engineering', 91000, '2022-08-05')
+    "        ]
+    "        
+    "        cursor.executemany(
+    "            \"INSERT OR REPLACE INTO employees VALUES (?, ?, ?, ?, ?)\",
+    "            employees
+    "        )
+    "        
+    "        projects = [
+    "            (1, 'AI Platform', 500000, 'active', 1),
+    "            (2, 'Mobile App', 200000, 'completed', 2),
+    "            (3, 'Marketing Campaign', 150000, 'planning', 3)
+    "        ]
+    "        
+    "        cursor.executemany(
+    "            \"INSERT OR REPLACE INTO projects VALUES (?, ?, ?, ?, ?)\",
+    "            projects
+    "        )
+    "        
+    "        conn.commit()
+    "        conn.close()
+    "    
+    "    async def _execute_impl(self, input_data: Any, **kwargs) -> ToolResult:
+    "        \"\"\"Execute database query with safety checks\"\"\"
+    "        query = input_data.strip() if isinstance(input_data, str) else str(input_data)
+    "        
+    "        # Safety checks
+    "        if not self._is_safe_query(query):
+    "            return ToolResult(
+    "                status=ToolExecutionStatus.FAILURE,
+    "                error=\"Query rejected by safety checks\"
+    "            )
+    "        
+    "        try:
+    "            conn = sqlite3.connect(self.db_path)
+    "            conn.row_factory = sqlite3.Row  # Enable column access by name
+    "            cursor = conn.cursor()
+    "            
+    "            # Execute query
+    "            cursor.execute(query)
+    "            
+    "            if query.strip().upper().startswith('SELECT'):
+    "                # For SELECT queries, return results
+    "                rows = cursor.fetchall()
+    "                result_data = [dict(row) for row in rows]
+    "                
+    "                return ToolResult(
+    "                    status=ToolExecutionStatus.SUCCESS,
+    "                    data={
+    "                        "rows": result_data,
+    "                        "count": len(result_data),
+    "                        "columns": [desc[0] for desc in cursor.description] if cursor.description else []
+    "                    },
+    "                    metadata={"query_type": \"SELECT\"}
+    "                )
+    "            else:
+    "                # For other queries, return execution info
+    "                conn.commit()
+    "                return ToolResult(
+    "                    status=ToolExecutionStatus.SUCCESS,
+    "                    data={
+    "                        "rows_affected": cursor.rowcount,
+    "                        "message": \"Query executed successfully\"
+    "                    },
+    "                    metadata={"query_type": \"MODIFY\"}
+    "                )
+    "        
+    "        except sqlite3.Error as e:
+    "            return ToolResult(
+    "                status=ToolExecutionStatus.FAILURE,
+    "                error=f\"Database error: {str(e)}\"
+    "            )
+    "        
+    "        finally:
+    "            if 'conn' in locals():
+    "                conn.close()
+    "    
+    "    def _is_safe_query(self, query: str) -> bool:
+    "        \"\"\"Basic safety checks for SQL queries\"\"\"
+    "        query_upper = query.upper().strip()
+    "        
+    "        # Blocked operations
+    "        dangerous_ops = ['DROP', 'DELETE', 'TRUNCATE', 'ALTER', 'CREATE USER', 'GRANT']
+    "        
+    "        for op in dangerous_ops:
+    "            if op in query_upper:
+    "                return False
+    "        
+    "        # Must be a reasonable length
+    "        if len(query) > 1000:
+    "            return False
+    "        
+    "        return True
+    "
+    "# Test the database tool
+    "db_tool = DatabaseTool()
+    "
+    "print(\"🗄️ Testing Database Tool:\")
+    "
+    "# Test 1: Select query
+    "result1 = db_tool.execute(\"SELECT name, department, salary FROM employees WHERE salary > 80000\")
+    "print_tool_result(\"Database Query\", \"High salary employees\", 
+    "                 f\"Found {result1.data['count']} employees\" if result1.is_success else result1.error, 
+    "                 result1.is_success)
+    "
+    "if result1.is_success:
+    "    for emp in result1.data['rows']:
+    "        print(f\"  • {emp['name']}: {emp['department']} - ${emp['salary']:,}\")
+    "
+    "# Test 2: Aggregation query
+    "result2 = db_tool.execute(\"SELECT department, COUNT(*) as count, AVG(salary) as avg_salary FROM employees GROUP BY department\")
+    "print_tool_result(\"Database Query\", \"Department statistics\", 
+    "                 f\"Found {result2.data['count']} departments\" if result2.is_success else result2.error,
+    "                 result2.is_success)
+    "
+    "if result2.is_success:
+    "    for dept in result2.data['rows']:
+    "        print(f\"  • {dept['department']}: {dept['count']} employees, avg salary ${dept['avg_salary']:,.0f}\")
+    "
+    "print(f\"\\n📊 Database tool stats: {db_tool.get_stats()}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "api-tool",
+   "metadata": {},
+   "source": [
+    "### 2. Web API Integration Tool
+    "Handles REST API calls with authentication and rate limiting"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "api-tool-impl",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "class WebAPITool(BaseTool):
+    "    \"\"\"Tool for making HTTP API calls with robust error handling\"\"\"
+    "    
+    "    def __init__(self, base_url: str = None, api_key: str = None):
+    "        super().__init__(
+    "            name=\"web_api\",
+    "            description=\"Make HTTP requests to web APIs with authentication and error handling\",
+    "            config=ToolConfig(
+    "                timeout_seconds=15.0,
+    "                rate_limit_delay=1.0,
+    "                cache_results=True,
+    "                auth_required=bool(api_key)
+    "            )
+    "        )
+    "        self.base_url = base_url
+    "        self.api_key = api_key
+    "        self.session = requests.Session()
+    "        
+    "        # Setup default headers
+    "        if api_key:
+    "            self.session.headers.update({'Authorization': f'Bearer {api_key}'})
+    "        
+    "        self.session.headers.update({
+    "            'User-Agent': 'AgenticAI-Tool/1.0',
+    "            'Content-Type': 'application/json'
+    "        })
+    "    
+    "    async def _execute_impl(self, input_data: Any, **kwargs) -> ToolResult:
+    "        \"\"\"Execute HTTP request\"\"\"
+    "        
+    "        # Parse input data
+    "        if isinstance(input_data, str):
+    "            # Simple URL request
+    "            request_config = {
+    "                'method': 'GET',
+    "                'url': input_data
+    "            },
+    "        elif isinstance(input_data, dict):
+    "            # Detailed request configuration
+    "            request_config = input_data
+    "        else:
+    "            return ToolResult(
+    "                status=ToolExecutionStatus.FAILURE,
+    "                error=\"Invalid input format. Provide URL string or request config dict\"
+    "            )
+    "        
+    "        # Extract request parameters
+    "        method = request_config.get('method', 'GET').upper()
+    "        url = request_config.get('url', '')
+    "        headers = request_config.get('headers', {})
+    "        params = request_config.get('params', {})
+    "        data = request_config.get('data', None)
+    "        json_data = request_config.get('json', None)
+    "        
+    "        # Handle relative URLs
+    "        if self.base_url and not url.startswith(('http://', 'https://')):
+    "            url = f\"{self.base_url.rstrip('/')}/{url.lstrip('/')}\"
+    "        
+    "        try:
+    "            # Make the request
+    "            response = self.session.request(
+    "                method=method,
+    "                url=url,
+    "                headers=headers,
+    "                params=params,
+    "                data=data,
+    "                json=json_data,
+    "                timeout=self.config.timeout_seconds
+    "            )
+    "            
+    "            # Handle rate limiting
+    "            if response.status_code == 429:
+    "                retry_after = response.headers.get('Retry-After', '60')
+    "                return ToolResult(
+    "                    status=ToolExecutionStatus.RATE_LIMITED,
+    "                    error=f\"Rate limited. Retry after {retry_after} seconds\",
+    "                    metadata={'retry_after': int(retry_after)}
+    "                )
+    "            
+    "            # Handle authentication errors
+    "            if response.status_code in [401, 403]:
+    "                return ToolResult(
+    "                    status=ToolExecutionStatus.AUTH_ERROR,
+    "                    error=f\"Authentication failed: {response.status_code}\"
+    "                )
+    "            
+    "            # Parse response
+    "            try:
+    "                response_data = response.json()
+    "            except ValueError:
+    "                response_data = response.text
+    "            
+    "            if response.ok:
+    "                return ToolResult(
+    "                    status=ToolExecutionStatus.SUCCESS,
+    "                    data={
+    "                        'status_code': response.status_code,
+    "                        'data': response_data,
+    "                        'headers': dict(response.headers)
+    "                    },
+    "                    metadata={
+    "                        'url': url,
+    "                        'method': method,
+    "                        'content_type': response.headers.get('Content-Type', '')
+    "                    },
+    "                )
+    "            else:
+    "                return ToolResult(
+    "                    status=ToolExecutionStatus.FAILURE,
+    "                    error=f\"HTTP {response.status_code}: {response_data}\",
+    "                    metadata={'status_code': response.status_code}
+    "                )
+    "        
+    "        except requests.exceptions.Timeout:
+    "            return ToolResult(
+    "                status=ToolExecutionStatus.TIMEOUT,
+    "                error=\"Request timed out\"
+    "            )
+    "        
+    "        except requests.exceptions.RequestException as e:
+    "            return ToolResult(
+    "                status=ToolExecutionStatus.FAILURE,
+    "                error=f\"Request failed: {str(e)}\"
+    "            )
+    "
+    "# Create API tool for testing (we'll simulate responses)
+    "api_tool = WebAPITool()
+    "
+    "print(\"🌐 Testing Web API Tool:\")
+    "
+    "# For demonstration, we'll test with a public API
+    "# Test 1: Simple GET request
+    "result1 = api_tool.execute(\"https://httpbin.org/get?test=agent\")
+    "print_tool_result(\"Web API\", \"GET request to httpbin\", 
+    "                 f\"Status: {result1.data['status_code']}\" if result1.is_success else result1.error,
+    "                 result1.is_success)
+    "
+    "# Test 2: POST request with JSON data
+    "post_config = {
+    "    'method': 'POST',
+    "    'url': 'https://httpbin.org/post',
+    "    'json': {
+    "        'message': 'Hello from agent!',
+    "        'timestamp': datetime.now().isoformat()
+    "    },
+    "}
+    "
+    "result2 = api_tool.execute(post_config)
+    "print_tool_result(\"Web API\", \"POST request with JSON\", 
+    "                 f\"Status: {result2.data['status_code']}\" if result2.is_success else result2.error,
+    "                 result2.is_success)
+    "
+    "print(f\"\\n📊 API tool stats: {api_tool.get_stats()}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "file-tool",
+   "metadata": {},
+   "source": [
+    "### 3. File Processing Tool
+    "Handles file operations with security and validation"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "file-tool-impl",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "class FileProcessingTool(BaseTool):
+    "    \"\"\"Tool for safe file operations with validation and processing\"\"\"
+    "    
+    "    def __init__(self, workspace_dir: str = \"./agent_workspace\"):
+    "        super().__init__(
+    "            name=\"file_processor\",
+    "            description=\"Process files with safety checks and validation\",
+    "            config=ToolConfig(cache_results=False, timeout_seconds=30.0)
+    "        )
+    "        self.workspace_dir = Path(workspace_dir)
+    "        self.workspace_dir.mkdir(exist_ok=True)
+    "        
+    "        # Allowed file extensions for security
+    "        self.allowed_extensions = {'.txt', '.json', '.csv', '.md', '.yml', '.yaml'}
+    "        self.max_file_size = 10 * 1024 * 1024  # 10MB limit
+    "    
+    "    async def _execute_impl(self, input_data: Any, **kwargs) -> ToolResult:
+    "        \"\"\"Execute file operation\"\"\"
+    "        
+    "        if not isinstance(input_data, dict):
+    "            return ToolResult(
+    "                status=ToolExecutionStatus.FAILURE,
+    "                error=\"Input must be a dict with 'operation' and parameters\"
+    "            )
+    "        
+    "        operation = input_data.get('operation', '').lower()
+    "        
+    "        if operation == 'read':
+    "            return await self._read_file(input_data)
+    "        elif operation == 'write':
+    "            return await self._write_file(input_data)
+    "        elif operation == 'analyze':
+    "            return await self._analyze_file(input_data)
+    "        elif operation == 'list':
+    "            return await self._list_files(input_data)
+    "        else:
+    "            return ToolResult(
+    "                status=ToolExecutionStatus.FAILURE,
+    "                error=f\"Unknown operation: {operation}. Supported: read, write, analyze, list\"
+    "            )
+    "    
+    "    async def _read_file(self, config: Dict) -> ToolResult:
+    "        \"\"\"Read file content safely\"\"\"
+    "        filename = config.get('filename', '')
+    "        encoding = config.get('encoding', 'utf-8')
+    "        
+    "        if not filename:
+    "            return ToolResult(
+    "                status=ToolExecutionStatus.FAILURE,
+    "                error=\"Filename is required for read operation\"
+    "            )
+    "        
+    "        file_path = self.workspace_dir / filename
+    "        
+    "        # Security checks
+    "        if not self._is_safe_path(file_path):
+    "            return ToolResult(
+    "                status=ToolExecutionStatus.FAILURE,
+    "                error=\"File path is not safe or not allowed\"
+    "            )
+    "        
+    "        try:
+    "            if not file_path.exists():
+    "                return ToolResult(
+    "                    status=ToolExecutionStatus.FAILURE,
+    "                    error=f\"File not found: {filename}\"
+    "                )
+    "            
+    "            # Check file size
+    "            if file_path.stat().st_size > self.max_file_size:
+    "                return ToolResult(
+    "                    status=ToolExecutionStatus.FAILURE,
+    "                    error=f\"File too large (max {self.max_file_size // 1024 // 1024}MB)\"
+    "                )
+    "            
+    "            with open(file_path, 'r', encoding=encoding) as f:
+    "                content = f.read()
+    "            
+    "            return ToolResult(
+    "                status=ToolExecutionStatus.SUCCESS,
+    "                data={
+    "                    'content': content,
+    "                    'filename': filename,
+    "                    'size': len(content),
+    "                    'lines': len(content.splitlines())
+    "                },
+    "                metadata={'operation': 'read', 'encoding': encoding}
+    "            )
+    "        
+    "        except UnicodeDecodeError:
+    "            return ToolResult(
+    "                status=ToolExecutionStatus.FAILURE,
+    "                error=f\"Cannot decode file with encoding: {encoding}\"
+    "            )
+    "        
+    "        except Exception as e:
+    "            return ToolResult(
+    "                status=ToolExecutionStatus.FAILURE,
+    "                error=f\"Error reading file: {str(e)}\"
+    "            )
+    "    
+    "    async def _write_file(self, config: Dict) -> ToolResult:
+    "        \"\"\"Write content to file safely\"\"\"
+    "        filename = config.get('filename', '')
+    "        content = config.get('content', '')
+    "        encoding = config.get('encoding', 'utf-8')
+    "        overwrite = config.get('overwrite', False)
+    "        
+    "        if not filename or not content:
+    "            return ToolResult(
+    "                status=ToolExecutionStatus.FAILURE,
+    "                error=\"Both filename and content are required for write operation\"
+    "            )
+    "        
+    "        file_path = self.workspace_dir / filename
+    "        
+    "        # Security checks
+    "        if not self._is_safe_path(file_path):
+    "            return ToolResult(
+    "                status=ToolExecutionStatus.FAILURE,
+    "                error=\"File path is not safe or not allowed\"
+    "            )
+    "        
+    "        # Check if file exists and overwrite is not allowed
+    "        if file_path.exists() and not overwrite:
+    "            return ToolResult(
+    "                status=ToolExecutionStatus.FAILURE,
+    "                error=f\"File already exists: {filename}. Set overwrite=True to replace\"
+    "            )
+    "        
+    "        try:
+    "            # Create directory if needed
+    "            file_path.parent.mkdir(parents=True, exist_ok=True)
+    "            
+    "            with open(file_path, 'w', encoding=encoding) as f:
+    "                f.write(content)
+    "            
+    "            return ToolResult(
+    "                status=ToolExecutionStatus.SUCCESS,
+    "                data={
+    "                    'filename': filename,
+    "                    'bytes_written': len(content.encode(encoding)),
+    "                    'lines_written': len(content.splitlines()),
+    "                    'created': not file_path.existed_before if hasattr(file_path, 'existed_before') else True
+    "                },
+    "                metadata={'operation': 'write', 'encoding': encoding}
+    "            )
+    "        
+    "        except Exception as e:
+    "            return ToolResult(
+    "                status=ToolExecutionStatus.FAILURE,
+    "                error=f\"Error writing file: {str(e)}\"
+    "            )
+    "    
+    "    async def _analyze_file(self, config: Dict) -> ToolResult:
+    "        \"\"\"Analyze file and provide statistics\"\"\"
+    "        filename = config.get('filename', '')
+    "        
+    "        # First read the file
+    "        read_result = await self._read_file({'filename': filename})
+    "        if not read_result.is_success:
+    "            return read_result
+    "        
+    "        content = read_result.data['content']
+    "        file_path = self.workspace_dir / filename
+    "        
+    "        # Perform analysis
+    "        analysis = {
+    "            'filename': filename,
+    "            'size_bytes': len(content.encode('utf-8')),
+    "            'size_chars': len(content),
+    "            'lines': len(content.splitlines()),
+    "            'words': len(content.split()),
+    "            'extension': file_path.suffix,
+    "            'is_empty': len(content.strip()) == 0
+    "        },
+    "        
+    "        # File type specific analysis
+    "        if file_path.suffix == '.json':
+    "            try:
+    "                data = json.loads(content)
+    "                analysis['json_valid'] = True
+    "                analysis['json_keys'] = len(data) if isinstance(data, dict) else None
+    "                analysis['json_type'] = type(data).__name__
+    "            except json.JSONDecodeError:
+    "                analysis['json_valid'] = False
+    "        
+    "        elif file_path.suffix == '.csv':
+    "            lines = content.splitlines()
+    "            if lines:
+    "                analysis['csv_columns'] = len(lines[0].split(',')) if lines else 0
+    "                analysis['csv_rows'] = len(lines) - 1  # Exclude header
+    "        
+    "        return ToolResult(
+    "            status=ToolExecutionStatus.SUCCESS,
+    "            data=analysis,
+    "            metadata={'operation': 'analyze'}
+    "        )
+    "    
+    "    async def _list_files(self, config: Dict) -> ToolResult:
+    "        \"\"\"List files in workspace\"\"\"
+    "        pattern = config.get('pattern', '*')
+    "        include_hidden = config.get('include_hidden', False)
+    "        
+    "        try:
+    "            files = []
+    "            for file_path in self.workspace_dir.glob(pattern):
+    "                if file_path.is_file():
+    "                    if not include_hidden and file_path.name.startswith('.'):
+    "                        continue
+    "                    
+    "                    files.append({
+    "                        'name': file_path.name,
+    "                        'size': file_path.stat().st_size,
+    "                        'extension': file_path.suffix,
+    "                        'modified': datetime.fromtimestamp(file_path.stat().st_mtime).isoformat()
+    "                    })
+    "            
+    "            return ToolResult(
+    "                status=ToolExecutionStatus.SUCCESS,
+    "                data={
+    "                    'files': files,
+    "                    'count': len(files),
+    "                    'workspace': str(self.workspace_dir)
+    "                },
+    "                metadata={'operation': 'list', 'pattern': pattern}
+    "            )
+    "        
+    "        except Exception as e:
+    "            return ToolResult(
+    "                status=ToolExecutionStatus.FAILURE,
+    "                error=f\"Error listing files: {str(e)}\"
+    "            )
+    "    
+    "    def _is_safe_path(self, file_path: Path) -> bool:
+    "        \"\"\"Check if file path is safe and allowed\"\"\"
+    "        try:
+    "            # Resolve path to prevent directory traversal
+    "            resolved_path = file_path.resolve()
+    "            workspace_resolved = self.workspace_dir.resolve()
+    "            
+    "            # Check if path is within workspace
+    "            if not str(resolved_path).startswith(str(workspace_resolved)):
+    "                return False
+    "            
+    "            # Check file extension
+    "            if file_path.suffix.lower() not in self.allowed_extensions:
+    "                return False
+    "            
+    "            return True
+    "        
+    "        except Exception:
+    "            return False
+    "
+    "# Test the file processing tool
+    "file_tool = FileProcessingTool()
+    "
+    "print(\"📁 Testing File Processing Tool:\")
+    "
+    "# Test 1: Write a file
+    "test_content = \"\"\"# Agent Test File
+    "This is a test file created by the file processing tool.
+    "
+    "Features:
+    "- Safe file operations
+    "- Content validation
+    "- Security checks
+    "
+    "Timestamp: {}
+    "\"\"\".format(datetime.now().isoformat())
+    "
+    "write_result = file_tool.execute({
+    "    'operation': 'write',
+    "    'filename': 'test_agent_file.txt',
+    "    'content': test_content,
+    "    'overwrite': True
+    "})
+    "
+    "print_tool_result(\"File Write\", \"Creating test file\", 
+    "                 f\"Written {write_result.data['bytes_written']} bytes\" if write_result.is_success else write_result.error,
+    "                 write_result.is_success)
+    "
+    "# Test 2: Read the file back
+    "read_result = file_tool.execute({
+    "    'operation': 'read',
+    "    'filename': 'test_agent_file.txt'
+    "})
+    "
+    "print_tool_result(\"File Read\", \"Reading test file\", 
+    "                 f\"Read {read_result.data['size']} characters, {read_result.data['lines']} lines\" if read_result.is_success else read_result.error,
+    "                 read_result.is_success)
+    "
+    "# Test 3: Analyze the file
+    "analyze_result = file_tool.execute({
+    "    'operation': 'analyze',
+    "    'filename': 'test_agent_file.txt'
+    "})
+    "
+    "print_tool_result(\"File Analysis\", \"Analyzing test file\", 
+    "                 f\"Words: {analyze_result.data['words']}, Lines: {analyze_result.data['lines']}\" if analyze_result.is_success else analyze_result.error,
+    "                 analyze_result.is_success)
+    "
+    "# Test 4: List files
+    "list_result = file_tool.execute({
+    "    'operation': 'list',
+    "    'pattern': '*.txt'
+    "})
+    "
+    "print_tool_result(\"File List\", \"Listing .txt files\", 
+    "                 f\"Found {list_result.data['count']} files\" if list_result.is_success else list_result.error,
+    "                 list_result.is_success)
+    "
+    "print(f\"\\n📊 File tool stats: {file_tool.get_stats()}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "guided-exercise-integration",
+   "metadata": {},
+   "source": [
+    "## 💡 Guided Exercise: Build an Email Communication Tool
+    "
+    "Your task is to create an email tool that can send emails with proper error handling and validation.
+    "
+    "**Requirements:**
+    "1. Validate email addresses
+    "2. Handle SMTP connection errors
+    "3. Support HTML and plain text emails
+    "4. Implement rate limiting for bulk emails"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "guided-exercise-email-tool",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import re
+    "from email.mime.text import MIMEText
+    "from email.mime.multipart import MIMEMultipart
+    "
+    "class EmailTool(BaseTool):
+    "    \"\"\"Tool for sending emails with validation and error handling\"\"\"
+    "    
+    "    def __init__(self, smtp_server: str = \"localhost\", smtp_port: int = 587, 
+    "                 username: str = None, password: str = None):
+    "        super().__init__(
+    "            name=\"email_sender\",
+    "            description=\"Send emails with validation and error handling\",
+    "            config=ToolConfig(
+    "                timeout_seconds=30.0,
+    "                rate_limit_delay=2.0,  # 2 seconds between emails
+    "                cache_results=False,   # Don't cache email sends
+    "                auth_required=bool(username and password)
+    "            )
+    "        )
+    "        self.smtp_server = smtp_server
+    "        self.smtp_port = smtp_port
+    "        self.username = username
+    "        self.password = password
+    "        self.sent_count = 0
+    "    
+    "    async def _execute_impl(self, input_data: Any, **kwargs) -> ToolResult:
+    "        \"\"\"
+    "        Send email with comprehensive validation and error handling.
+    "        
+    "        YOUR TASK: Complete this implementation with:
+    "        1. Email address validation
+    "        2. Message construction
+    "        3. SMTP connection and sending
+    "        4. Proper error handling
+    "        \"\"\"
+    "        
+    "        if not isinstance(input_data, dict):
+    "            return ToolResult(
+    "                status=ToolExecutionStatus.FAILURE,
+    "                error=\"Input must be a dict with email parameters\"
+    "            )
+    "        
+    "        ### START CODE HERE ###
+    "        
+    "        # Step 1: Extract and validate email parameters
+    "        to_email = input_data.get('to', '')
+    "        from_email = input_data.get('from', self.username or 'agent@example.com')
+    "        subject = input_data.get('subject', '')
+    "        body = input_data.get('body', '')
+    "        html_body = input_data.get('html_body', None)
+    "        
+    "        # YOUR CODE: Validate required fields
+    "        if not to_email or not subject or not body:
+    "            return ToolResult(
+    "                status=ToolExecutionStatus.FAILURE,
+    "                error=\"Missing required fields: to, subject, and body are required\"
+    "            )
+    "        
+    "        # YOUR CODE: Validate email addresses using regex
+    "        email_pattern = # YOUR REGEX PATTERN
+    "        
+    "        if not re.match(email_pattern, to_email):
+    "            return ToolResult(
+    "                status=ToolExecutionStatus.FAILURE,
+    "                error=f\"Invalid recipient email address: {to_email}\"
+    "            )
+    "        
+    "        if not re.match(email_pattern, from_email):
+    "            return ToolResult(
+    "                status=ToolExecutionStatus.FAILURE,
+    "                error=f\"Invalid sender email address: {from_email}\"
+    "            )
+    "        
+    "        # Step 2: Construct email message
+    "        # YOUR CODE: Create MIMEMultipart message
+    "        msg = MIMEMultipart('alternative')
+    "        msg['Subject'] = # YOUR CODE
+    "        msg['From'] = # YOUR CODE
+    "        msg['To'] = # YOUR CODE
+    "        
+    "        # YOUR CODE: Add plain text body
+    "        text_part = MIMEText(# YOUR CODE, 'plain')
+    "        msg.attach(text_part)
+    "        
+    "        # YOUR CODE: Add HTML body if provided
+    "        if html_body:
+    "            html_part = # YOUR CODE: Create HTML part
+    "            msg.attach(html_part)
+    "        
+    "        # Step 3: Send email (simulated for this exercise)
+    "        try:
+    "            # In a real implementation, you would:
+    "            # 1. Connect to SMTP server
+    "            # 2. Authenticate if needed
+    "            # 3. Send the message
+    "            # 4. Handle various SMTP errors
+    "            
+    "            # For this exercise, we'll simulate the sending
+    "            # YOUR CODE: Simulate email sending logic
+    "            success = True  # Simulate successful sending
+    "            
+    "            if success:
+    "                self.sent_count += 1
+    "                return ToolResult(
+    "                    status=ToolExecutionStatus.SUCCESS,
+    "                    data={
+    "                        'message': 'Email sent successfully',
+    "                        'to': to_email,
+    "                        'from': from_email,
+    "                        'subject': subject,
+    "                        'sent_count': self.sent_count
+    "                    },
+    "                    metadata={
+    "                        'smtp_server': self.smtp_server,
+    "                        'has_html': bool(html_body)
+    "                    },
+    "                )
+    "            else:
+    "                return ToolResult(
+    "                    status=ToolExecutionStatus.FAILURE,
+    "                    error=\"Failed to send email\"
+    "                )
+    "        
+    "        except Exception as e:
+    "            # YOUR CODE: Handle different types of email errors
+    "            return ToolResult(
+    "                status=ToolExecutionStatus.FAILURE,
+    "                error=f\"Email sending failed: {str(e)}\"
+    "            )
+    "        
+    "        ### END CODE HERE ###
+    "    
+    "    def _validate_email(self, email: str) -> bool:
+    "        \"\"\"Validate email address format\"\"\"
+    "        pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$'
+    "        return re.match(pattern, email) is not None
+    "
+    "# Test your email tool implementation
+    "email_tool = EmailTool(
+    "    smtp_server=\"smtp.example.com\",
+    "    username=\"agent@example.com\",
+    "    password=\"password123\"
+    ")
+    "
+    "print(\"📧 Testing Email Tool:\")
+    "
+    "# Test 1: Valid email
+    "email_config = {
+    "    'to': 'user@example.com',
+    "    'subject': 'Test Email from Agent',
+    "    'body': 'This is a test email sent by the agentic system.',
+    "    'html_body': '<h1>Test Email</h1><p>This is a <b>test email</b> sent by the agentic system.</p>'
+    "}
+    "
+    "result1 = email_tool.execute(email_config)
+    "print_tool_result(\"Email Send\", \"Valid email test\", 
+    "                 result1.data['message'] if result1.is_success else result1.error,
+    "                 result1.is_success)
+    "
+    "# Test 2: Invalid email address
+    "invalid_email_config = {
+    "    'to': 'invalid-email',
+    "    'subject': 'Test Email',
+    "    'body': 'This should fail due to invalid email.'
+    "}
+    "
+    "result2 = email_tool.execute(invalid_email_config)
+    "print_tool_result(\"Email Send\", \"Invalid email test\", 
+    "                 result2.data['message'] if result2.is_success else result2.error,
+    "                 result2.is_success)
+    "
+    "print(f\"\\n📊 Email tool stats: {email_tool.get_stats()}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "solution-reveal-email",
+   "metadata": {},
+   "source": [
+    "### 🔍 Solution Reveal - Email Tool
+    "
+    "Here's the complete solution for the email tool:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "solution-email",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# SOLUTION - Email Tool Implementation
+    "\"\"\"
+    "Complete _execute_impl method:
+    "
+    "# Email validation regex
+    "email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$'
+    "
+    "# Message construction
+    "msg['Subject'] = subject
+    "msg['From'] = from_email
+    "msg['To'] = to_email
+    "
+    "# Plain text part
+    "text_part = MIMEText(body, 'plain')
+    "
+    "# HTML part
+    "if html_body:
+    "    html_part = MIMEText(html_body, 'html')
+    "    msg.attach(html_part)
+    "
+    "# Real SMTP implementation would include:
+    "# server = smtplib.SMTP(self.smtp_server, self.smtp_port)
+    "# server.starttls()
+    "# server.login(self.username, self.password)
+    "# server.send_message(msg)
+    "# server.quit()
+    "\"\"\"
+    "
+    "print(\"💡 Solution revealed! Key points:\")
+    "print(\"  • Email validation using regex\")
+    "print(\"  • MIMEMultipart for complex emails\")
+    "print(\"  • Proper error handling for SMTP\")
+    "print(\"  • Rate limiting between sends\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "tool-manager",
+   "metadata": {},
+   "source": [
+    "## 🎛️ Advanced Tool Management System
+    "
+    "Now let's create a sophisticated tool manager that can dynamically discover, load, and coordinate multiple tools."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "tool-manager-impl",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "class ToolManager:
+    "    \"\"\"Advanced tool management system with dynamic discovery and coordination\"\"\"
+    "    
+    "    def __init__(self):
+    "        self.tools: Dict[str, BaseTool] = {}
+    "        self.tool_usage_stats = defaultdict(int)
+    "        self.tool_success_rates = defaultdict(list)
+    "        self.tool_dependencies = {}  # Tool dependency graph
+    "        self.tool_categories = defaultdict(list)
+    "    
+    "    def register_tool(self, tool: BaseTool, category: str = \"general\") -> bool:
+    "        \"\"\"Register a new tool with the manager\"\"\"
+    "        try:
+    "            if tool.name in self.tools:
+    "                logger.warning(f\"Tool {tool.name} already registered, overwriting\")
+    "            
+    "            self.tools[tool.name] = tool
+    "            self.tool_categories[category].append(tool.name)
+    "            
+    "            logger.info(f\"Registered tool: {tool.name} in category: {category}\")
+    "            return True
+    "        
+    "        except Exception as e:
+    "            logger.error(f\"Failed to register tool {tool.name}: {str(e)}\")
+    "            return False
+    "    
+    "    def execute_tool(self, tool_name: str, input_data: Any, **kwargs) -> ToolResult:
+    "        \"\"\"Execute a tool with comprehensive logging and stats tracking\"\"\"
+    "        if tool_name not in self.tools:
+    "            return ToolResult(
+    "                status=ToolExecutionStatus.FAILURE,
+    "                error=f\"Tool not found: {tool_name}\"
+    "            )
+    "        
+    "        tool = self.tools[tool_name]
+    "        self.tool_usage_stats[tool_name] += 1
+    "        
+    "        logger.info(f\"Executing tool: {tool_name} with input: {str(input_data)[:100]}\")
+    "        
+    "        try:
+    "            result = tool.execute(input_data, **kwargs)
+    "            
+    "            # Track success rate
+    "            self.tool_success_rates[tool_name].append(result.is_success)
+    "            
+    "            # Keep only last 100 results for success rate calculation
+    "            if len(self.tool_success_rates[tool_name]) > 100:
+    "                self.tool_success_rates[tool_name] = self.tool_success_rates[tool_name][-100:]
+    "            
+    "            logger.info(f\"Tool {tool_name} executed with status: {result.status.value}\")
+    "            return result
+    "        
+    "        except Exception as e:
+    "            logger.error(f\"Unexpected error executing tool {tool_name}: {str(e)}\")
+    "            return ToolResult(
+    "                status=ToolExecutionStatus.FAILURE,
+    "                error=f\"Unexpected error: {str(e)}\"
+    "            )
+    "    
+    "    def execute_workflow(self, workflow_steps: List[Dict]) -> List[ToolResult]:
+    "        \"\"\"Execute a series of tool operations as a workflow\"\"\"
+    "        results = []
+    "        context = {}  # Shared context between steps
+    "        
+    "        for i, step in enumerate(workflow_steps):
+    "            tool_name = step.get('tool')
+    "            input_data = step.get('input')
+    "            use_previous_output = step.get('use_previous_output', False)
+    "            condition = step.get('condition', None)
+    "            
+    "            # Check condition if specified
+    "            if condition and not self._evaluate_condition(condition, context, results):
+    "                logger.info(f\"Skipping step {i} due to condition: {condition}\")
+    "                continue
+    "            
+    "            # Use previous result as input if specified
+    "            if use_previous_output and results:
+    "                previous_result = results[-1]
+    "                if previous_result.is_success:
+    "                    input_data = previous_result.data
+    "                else:
+    "                    logger.error(f\"Cannot use previous output - previous step failed\")
+    "                    break
+    "            
+    "            # Execute the tool
+    "            result = self.execute_tool(tool_name, input_data)
+    "            results.append(result)
+    "            
+    "            # Update context
+    "            context[f'step_{i}_result'] = result
+    "            context[f'step_{i}_success'] = result.is_success
+    "            
+    "            # Stop on failure if not configured to continue
+    "            if not result.is_success and not step.get('continue_on_failure', False):
+    "                logger.error(f\"Workflow stopped at step {i} due to failure\")
+    "                break
+    "        
+    "        return results
+    "    
+    "    def get_tool_recommendations(self, task_description: str, limit: int = 3) -> List[str]:
+    "        \"\"\"Recommend tools based on task description and performance history\"\"\"
+    "        recommendations = []
+    "        task_lower = task_description.lower()
+    "        
+    "        # Score tools based on relevance and performance
+    "        tool_scores = {}
+    "        
+    "        for tool_name, tool in self.tools.items():
+    "            score = 0.0
+    "            
+    "            # Relevance score based on description
+    "            description_words = tool.description.lower().split()
+    "            task_words = task_lower.split()
+    "            
+    "            common_words = set(description_words) & set(task_words)
+    "            relevance_score = len(common_words) / max(len(task_words), 1)
+    "            score += relevance_score * 10
+    "            
+    "            # Performance score
+    "            if tool_name in self.tool_success_rates:
+    "                success_rate = sum(self.tool_success_rates[tool_name]) / len(self.tool_success_rates[tool_name])
+    "                score += success_rate * 5
+    "            
+    "            # Usage frequency bonus (popular tools)
+    "            usage_bonus = min(self.tool_usage_stats[tool_name] / 10, 2.0)
+    "            score += usage_bonus
+    "            
+    "            tool_scores[tool_name] = score
+    "        
+    "        # Sort by score and return top recommendations
+    "        sorted_tools = sorted(tool_scores.items(), key=lambda x: x[1], reverse=True)
+    "        return [tool_name for tool_name, _ in sorted_tools[:limit]]
+    "    
+    "    def get_comprehensive_stats(self) -> Dict[str, Any]:
+    "        \"\"\"Get comprehensive statistics about all tools\"\"\"
+    "        stats = {
+    "            'total_tools': len(self.tools),
+    "            'total_executions': sum(self.tool_usage_stats.values()),
+    "            'categories': dict(self.tool_categories),
+    "            'tool_stats': {}
+    "        },
+    "        
+    "        for tool_name, tool in self.tools.items():
+    "            tool_stats = tool.get_stats()
+    "            
+    "            # Add success rate from manager tracking
+    "            if tool_name in self.tool_success_rates:
+    "                recent_successes = self.tool_success_rates[tool_name]
+    "                success_rate = (sum(recent_successes) / len(recent_successes)) * 100
+    "                tool_stats['recent_success_rate'] = round(success_rate, 2)
+    "            
+    "            stats['tool_stats'][tool_name] = tool_stats
+    "        
+    "        return stats
+    "    
+    "    def _evaluate_condition(self, condition: str, context: Dict, results: List[ToolResult]) -> bool:
+    "        \"\"\"Evaluate a simple condition for workflow control\"\"\"
+    "        # Simple condition evaluation - in production, use a proper expression evaluator
+    "        if condition == \"previous_success\" and results:
+    "            return results[-1].is_success
+    "        elif condition == \"previous_failure\" and results:
+    "            return not results[-1].is_success
+    "        else:
+    "            return True  # Default to true for unknown conditions
+    "
+    "# Create and configure the tool manager
+    "tool_manager = ToolManager()
+    "
+    "# Register all our tools
+    "tool_manager.register_tool(db_tool, \"data\")
+    "tool_manager.register_tool(api_tool, \"communication\")
+    "tool_manager.register_tool(file_tool, \"file_system\")
+    "tool_manager.register_tool(email_tool, \"communication\")
+    "
+    "print(\"🎛️ Tool Manager created and configured!\")
+    "print(f\"📊 Registered {len(tool_manager.tools)} tools across {len(tool_manager.tool_categories)} categories\")
+    "
+    "# Display tool categories
+    "for category, tools in tool_manager.tool_categories.items():
+    "    print(f\"  📁 {category}: {', '.join(tools)}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "workflow-example",
+   "metadata": {},
+   "source": [
+    "## 🔄 Hands-On Exercise: Complex Workflow Integration
+    "
+    "Let's test our tool integration system with a complex, multi-step workflow that demonstrates real-world agent capabilities."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "workflow-demo",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def demo_complex_workflow():
+    "    \"\"\"Demonstrate a complex workflow using multiple integrated tools\"\"\"
+    "    
+    "    print_section(\"COMPLEX WORKFLOW DEMONSTRATION\", 
+    "                 \"Executing a multi-step data analysis and reporting workflow\")
+    "    
+    "    # Define a complex workflow: Data Analysis → Report Generation → Email Notification
+    "    workflow_steps = [
+    "        {
+    "            'tool': 'database_query',
+    "            'input': 'SELECT department, COUNT(*) as employee_count, AVG(salary) as avg_salary, MAX(salary) as max_salary FROM employees GROUP BY department ORDER BY avg_salary DESC',
+    "            'description': 'Query employee statistics by department'
+    "        },
+    "        {
+    "            'tool': 'file_processor',
+    "            'input': {
+    "                'operation': 'write',
+    "                'filename': 'department_analysis.json',
+    "                'content': '',  # Will be populated with query results
+    "                'overwrite': True
+    "            },
+    "            'description': 'Save analysis results to file',
+    "            'use_previous_output': True
+    "        },
+    "        {
+    "            'tool': 'file_processor',
+    "            'input': {
+    "                'operation': 'write',
+    "                'filename': 'department_report.txt',
+    "                'content': '',  # Will be generated based on analysis
+    "                'overwrite': True
+    "            },
+    "            'description': 'Generate human-readable report'
+    "        },
+    "        {
+    "            'tool': 'email_sender',
+    "            'input': {
+    "                'to': 'manager@company.com',
+    "                'subject': 'Department Analysis Report - ' + datetime.now().strftime('%Y-%m-%d'),
+    "                'body': 'Please find the attached department analysis report.',
+    "                'html_body': '<h2>Department Analysis Report</h2><p>The analysis has been completed. Please review the attached findings.</p>'
+    "            },
+    "            'description': 'Send report notification email',
+    "            'condition': 'previous_success'
+    "        },
+    "    ]
+    "    
+    "    # Execute the workflow step by step with detailed logging
+    "    print(\"🚀 Starting workflow execution...\\n\")
+    "    
+    "    # Step 1: Database Query
+    "    print(\"Step 1: Querying employee database...\")
+    "    db_result = tool_manager.execute_tool('database_query', workflow_steps[0]['input'])
+    "    
+    "    if db_result.is_success:
+    "        print(f\"✅ Found data for {db_result.data['count']} departments\")
+    "        
+    "        # Display the results
+    "        for dept_data in db_result.data['rows']:
+    "            print(f\"  📊 {dept_data['department']}: {dept_data['employee_count']} employees, \"
+    "                  f\"avg salary ${dept_data['avg_salary']:,.0f}, max ${dept_data['max_salary']:,}\")
+    "        
+    "        # Step 2: Save raw data to JSON file
+    "        print(\"\\nStep 2: Saving analysis data to file...\")
+    "        json_content = json.dumps(db_result.data, indent=2)
+    "        
+    "        file_save_config = workflow_steps[1]['input'].copy()
+    "        file_save_config['content'] = json_content
+    "        
+    "        save_result = tool_manager.execute_tool('file_processor', file_save_config)
+    "        
+    "        if save_result.is_success:
+    "            print(f\"✅ Saved {save_result.data['bytes_written']} bytes to {save_result.data['filename']}\")
+    "            
+    "            # Step 3: Generate human-readable report
+    "            print(\"\\nStep 3: Generating report...\")
+    "            
+    "            report_content = f\"\"\"# Department Analysis Report
+    "Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+    "
+    "## Summary
+    "Total departments analyzed: {db_result.data['count']}
+    "
+    "## Department Breakdown
+    "\"\"\"
+    "            
+    "            for dept_data in db_result.data['rows']:
+    "                report_content += f\"\"\"
+    "### {dept_data['department']} Department
+    "- Employees: {dept_data['employee_count']}
+    "- Average Salary: ${dept_data['avg_salary']:,.2f}
+    "- Highest Salary: ${dept_data['max_salary']:,}
+    "\"\"\"
+    "            
+    "            # Find highest and lowest performing departments
+    "            sorted_depts = sorted(db_result.data['rows'], key=lambda x: x['avg_salary'], reverse=True)
+    "            
+    "            report_content += f\"\"\"
+    "## Analysis
+    "- Highest paying department: {sorted_depts[0]['department']} (${sorted_depts[0]['avg_salary']:,.2f} avg)
+    "- Lowest paying department: {sorted_depts[-1]['department']} (${sorted_depts[-1]['avg_salary']:,.2f} avg)
+    "- Salary range: ${sorted_depts[-1]['avg_salary']:,.2f} - ${sorted_depts[0]['avg_salary']:,.2f}
+    "
+    "## Recommendations
+    "1. Review compensation structure for {sorted_depts[-1]['department']} department
+    "2. Consider {sorted_depts[0]['department']} best practices for other departments
+    "3. Regular salary benchmarking recommended
+    "\"\"\"
+    "            
+    "            report_save_config = workflow_steps[2]['input'].copy()
+    "            report_save_config['content'] = report_content
+    "            
+    "            report_result = tool_manager.execute_tool('file_processor', report_save_config)
+    "            
+    "            if report_result.is_success:
+    "                print(f\"✅ Generated report: {report_result.data['filename']} ({report_result.data['lines_written']} lines)\")
+    "                
+    "                # Step 4: Send notification email
+    "                print(\"\\nStep 4: Sending notification email...\")
+    "                
+    "                email_config = workflow_steps[3]['input'].copy()
+    "                email_config['body'] += f\"\\n\\nReport files generated:\\n- {file_save_config['filename']}\\n- {report_save_config['filename']}\"
+    "                
+    "                email_result = tool_manager.execute_tool('email_sender', email_config)
+    "                
+    "                if email_result.is_success:
+    "                    print(f\"✅ Email sent to {email_result.data['to']}\")
+    "                    print(\"\\n🎉 Workflow completed successfully!\")
+    "                else:
+    "                    print(f\"❌ Email failed: {email_result.error}\")
+    "            else:
+    "                print(f\"❌ Report generation failed: {report_result.error}\")
+    "        else:
+    "            print(f\"❌ File save failed: {save_result.error}\")
+    "    else:
+    "        print(f\"❌ Database query failed: {db_result.error}\")
+    "    
+    "    # Display comprehensive tool statistics
+    "    print(\"\\n\" + \"=\"*60)
+    "    print(\"📊 WORKFLOW EXECUTION STATISTICS\")
+    "    print(\"=\"*60)
+    "    
+    "    stats = tool_manager.get_comprehensive_stats()
+    "    
+    "    print(f\"Total tools: {stats['total_tools']}\")
+    "    print(f\"Total executions: {stats['total_executions']}\")
+    "    
+    "    print(\"\\n🔧 Tool Performance:\")
+    "    for tool_name, tool_stats in stats['tool_stats'].items():
+    "        success_rate = tool_stats.get('recent_success_rate', tool_stats.get('success_rate', 0))
+    "        print(f\"  • {tool_name}: {tool_stats['executions']} runs, {success_rate}% success rate\")
+    "    
+    "    return stats
+    "
+    "# Execute the complex workflow demonstration
+    "workflow_stats = demo_complex_workflow()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "tool-recommendations",
+   "metadata": {},
+   "source": [
+    "## 🎯 Intelligent Tool Recommendations
+    "
+    "Let's test the tool recommendation system with different types of tasks."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "recommendation-demo",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def test_tool_recommendations():
+    "    \"\"\"Test the intelligent tool recommendation system\"\"\"
+    "    
+    "    print_section(\"INTELLIGENT TOOL RECOMMENDATIONS\", 
+    "                 \"Testing AI-powered tool selection for different tasks\")
+    "    
+    "    test_tasks = [
+    "        \"I need to send an email to the team about project updates\",
+    "        \"Analyze employee data and find trends in salary by department\",
+    "        \"Save the current analysis results to a file for later review\",
+    "        \"Get weather information from an external API\",
+    "        \"Create a report document with our findings\",
+    "        \"Query the database to find all employees in engineering\"
+    "    ]
+    "    
+    "    for i, task in enumerate(test_tasks, 1):
+    "        print(f\"\\n🎯 Task {i}: {task}\")
+    "        
+    "        recommendations = tool_manager.get_tool_recommendations(task, limit=3)
+    "        
+    "        print(\"📋 Recommended tools:\")
+    "        for j, tool_name in enumerate(recommendations, 1):
+    "            tool = tool_manager.tools[tool_name]
+    "            print(f\"  {j}. {tool_name}: {tool.description}\")
+    "        
+    "        if not recommendations:
+    "            print(\"  ⚠️ No specific recommendations - consider adding more specialized tools\")
+    "    
+    "    print(\"\\n💡 Tool recommendation system helps agents automatically select the best tools for each task!\")
+    "
+    "test_tool_recommendations()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "knowledge-check-module3",
+   "metadata": {},
+   "source": [
+    "## 📝 Module 3 Knowledge Check
+    "
+    "Test your understanding of tool integration and environment interaction:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "knowledge-check-code-module3",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def module3_knowledge_check():
+    "    \"\"\"Knowledge check for Module 3 concepts\"\"\"
+    "    
+    "    questions = [
+    "        {
+    "            "question": \"What are the key layers in a robust tool integration architecture?\",
+    "            "options": [
+    "                \"A) Input, Process, Output\",
+    "                \"B) Agent Core, Tool Manager, Tool Abstraction, Connection & Auth, External Services\",
+    "                \"C) Database, API, File System\",
+    "                \"D) Local, Remote, Cloud\"
+    "            ],
+    "            "correct": \"B\",
+    "            "explanation": \"Each layer provides specific functionality: abstraction, error handling, security, and performance optimization.\"
+    "        },
+    "        {
+    "            "question": \"Why is error handling crucial in tool integration?\",
+    "            "options": [
+    "                \"A) To make code look professional\",
+    "                \"B) External services can fail, have rate limits, authentication issues, and network problems\",
+    "                \"C) It's required by programming standards\",
+    "                \"D) To slow down the system\"
+    "            ],
+    "            "correct": \"B\",
+    "            "explanation": \"Real-world systems must handle failures gracefully with retries, fallbacks, and proper error reporting.\"
+    "        },
+    "        {
+    "            "question": \"What makes a tool 'intelligent' in an agentic system?\",
+    "            "options": [
+    "                \"A) Using machine learning algorithms\",
+    "                \"B) Learning from usage patterns, adapting behavior, and improving over time\",
+    "                \"C) Having a nice user interface\",
+    "                \"D) Being written in Python\"
+    "            ],
+    "            "correct": \"B\",
+    "            "explanation": \"Intelligent tools learn from experience, adapt to usage patterns, and optimize their behavior based on outcomes.\"
+    "        },
+    "        {
+    "            "question": \"What is the purpose of workflow orchestration in tool integration?\",
+    "            "options": [
+    "                \"A) To make tools run faster\",
+    "                \"B) To coordinate multiple tools in sequence, handle dependencies, and manage complex multi-step processes\",
+    "                \"C) To reduce memory usage\",
+    "                \"D) To create pretty diagrams\"
+    "            ],
+    "            "correct": \"B\",
+    "            "explanation": \"Workflow orchestration enables complex tasks by coordinating tool execution, managing data flow, and handling conditional logic.\"
+    "        },
+    "    ]
+    "    
+    "    print(\"📝 MODULE 3 KNOWLEDGE CHECK\")
+    "    print(\"=\" * 40)
+    "    
+    "    for i, q in enumerate(questions, 1):
+    "        print(f\"\\nQuestion {i}: {q['question']}\")
+    "        for option in q['options']:
+    "            print(f\"  {option}\")
+    "        
+    "        print(f\"\\n✅ Correct Answer: {q['correct']}\")
+    "        print(f\"💡 Explanation: {q['explanation']}\")
+    "    
+    "    print(f\"\\n🎯 Knowledge check complete!\")
+    "    print(f\"🔧 You now understand how to build robust, real-world tool integration systems!\")
+    "
+    "module3_knowledge_check()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "module3-summary",
+   "metadata": {},
+   "source": [
+    "## 🎯 Module 3 Summary
+    "
+    "Outstanding work! You've built a comprehensive tool integration system that can handle real-world complexity. Let's review your achievements:
+    "
+    "### ✅ What You Built:
+    "- **Robust Tool Framework** with comprehensive error handling
+    "- **Database Integration Tool** with safety checks and query validation
+    "- **Web API Tool** with authentication, rate limiting, and retry logic
+    "- **File Processing Tool** with security validation and multiple operations
+    "- **Email Communication Tool** with validation and SMTP handling
+    "- **Advanced Tool Manager** with dynamic discovery and workflow orchestration
+    "- **Intelligent Recommendation System** for automatic tool selection
+    "
+    "### 🧠 Key Concepts Mastered:
+    "- **Tool Architecture**: Layered design with abstraction and error handling
+    "- **Error Resilience**: Retry logic, timeouts, and graceful degradation
+    "- **Security Patterns**: Input validation, path traversal protection, safe operations
+    "- **Performance Optimization**: Caching, rate limiting, connection pooling
+    "- **Workflow Orchestration**: Multi-step processes with conditional execution
+    "- **Dynamic Tool Management**: Registration, discovery, and recommendation systems
+    "
+    "### 🚀 Next Steps:
+    "In Module 4, you'll learn to:
+    "- Implement sophisticated planning algorithms
+    "- Break down complex goals into actionable steps
+    "- Create self-correcting planning mechanisms
+    "- Build adaptive goal decomposition systems
+    "
+    "### 💪 Challenge Exercises (Optional):
+    "Before Module 4, try:
+    "1. Implementing authentication tokens for API tools
+    "2. Creating a webhook listener tool for real-time events
+    "3. Building a distributed tool execution system
+    "4. Adding tool versioning and rollback capabilities"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "module3-progress",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Final Module 3 Progress Summary
+    "def module3_progress_summary():
+    "    print(\"📈 MODULE 3 PROGRESS SUMMARY\")
+    "    print(\"=\" * 40)
+    "    
+    "    capabilities = [
+    "        \"✅ Robust tool integration framework\",
+    "        \"✅ Database connectivity with safety checks\",
+    "        \"✅ Web API integration with auth & retries\",
+    "        \"✅ Secure file processing system\",
+    "        \"✅ Email communication capabilities\",
+    "        \"✅ Advanced tool management & orchestration\",
+    "        \"✅ Intelligent tool recommendation engine\",
+    "        \"✅ Complex workflow execution\"
+    "    ]
+    "    
+    "    print(\"\\n🔧 Tool Integration Capabilities:\")
+    "    for cap in capabilities:
+    "        print(f\"  {cap}\")
+    "    
+    "    # Get final tool statistics
+    "    final_stats = tool_manager.get_comprehensive_stats()
+    "    
+    "    print(f\"\\n📊 Final Tool System Statistics:\")
+    "    print(f\"  • Tools registered: {final_stats['total_tools']}\")
+    "    print(f\"  • Total executions: {final_stats['total_executions']}\")
+    "    print(f\"  • Tool categories: {len(final_stats['categories'])}\")
+    "    
+    "    # Show category breakdown
+    "    print(f\"\\n📁 Tool Categories:\")
+    "    for category, tools in final_stats['categories'].items():
+    "        print(f\"  • {category}: {len(tools)} tools\")
+    "    
+    "    # Calculate overall success rate
+    "    total_successes = 0
+    "    total_runs = 0
+    "    for tool_stats in final_stats['tool_stats'].values():
+    "        total_successes += tool_stats['successes']
+    "        total_runs += tool_stats['executions']
+    "    
+    "    overall_success_rate = (total_successes / total_runs * 100) if total_runs > 0 else 0
+    "    
+    "    print(f\"\\n🎯 Overall Performance:\")
+    "    print(f\"  • Success rate: {overall_success_rate:.1f}%\")
+    "    print(f\"  • Error handling: Robust with retries and fallbacks\")
+    "    print(f\"  • Security: Input validation and sandboxing\")
+    "    
+    "    print(f\"\\n🎯 Ready for Module 4: Planning and Goal Decomposition!\")
+    "    print(f\"\\n💡 Pro Tip: The tool integration system you built will be essential for executing complex plans!\")
+    "
+    "module3_progress_summary()"
+   ]
+  },
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": \"Python 3\",
+   "language": \"python\",
+   "name": \"python3\"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": \"ipython\",
+    "version": 3
+   },
+   "file_extension": \".py\",
+   "mimetype": \"text/x-python\",
+   "name": \"python\",
+   "nbconvert_exporter": \"python\",
+   "pygments_lexer": \"ipython3\",
+   "version": \"3.8.0\"
+  }\n }\n}

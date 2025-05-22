@@ -1,0 +1,1482 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "id": "course-header",
+   "metadata": {},
+   "source": [
+    "# Module 4: Planning and Goal Decomposition
+    "*Building Agents That Can Plan and Execute Complex Strategies*
+    "
+    "**Learning Objectives:**
+    "- Implement hierarchical planning systems for complex goals
+    "- Create agents that can break down goals into actionable steps
+    "- Build self-correcting and adaptive planning mechanisms
+    "- Design goal decomposition strategies for different problem types
+    "
+    "**Duration:** 60 minutes
+    "
+    "**Prerequisites:** Modules 1-3 (Foundations, Memory, Tool Integration)
+    "
+    "---"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "planning-introduction",
+   "metadata": {},
+   "source": [
+    "## 🎯 Why Planning Matters for Agents
+    "
+    "Up to this point, we've built agents that can reason, remember, and use tools. But **truly autonomous agents need sophisticated planning abilities** to:
+    "
+    "### 🧭 Navigate Complex Goal Spaces
+    "Real-world tasks aren't simple one-step operations. They require:
+    "- **Decomposition**: Breaking large goals into manageable subtasks
+    "- **Sequencing**: Determining the optimal order of operations
+    "- **Dependency Management**: Understanding what must happen before what
+    "- **Resource Allocation**: Planning within constraints of time, tools, and capabilities
+    "
+    "### 🔄 Adapt to Changing Conditions
+    "Plans must be dynamic and responsive:
+    "- **Monitoring**: Continuously assess progress and environment
+    "- **Replanning**: Adjust strategy when conditions change
+    "- **Error Recovery**: Handle failures and find alternative paths
+    "- **Optimization**: Improve plans based on new information
+    "
+    "### 🎪 Coordinate Multiple Objectives
+    "Advanced agents must balance competing goals:
+    "- **Priority Management**: Handle urgent vs. important tasks
+    "- **Resource Conflicts**: Resolve competing demands for tools/time
+    "- **Deadline Constraints**: Meet temporal requirements
+    "- **Quality vs. Speed**: Make appropriate trade-offs
+    "
+    "---
+    "
+    "## 🏗️ Planning Architecture Overview
+    "
+    "Modern agent planning systems use a hierarchical approach:
+    "
+    "```
+    "┌─────────────────────────────────────┐
+    "│        Strategic Planning           │ ← High-level goals
+    "├─────────────────────────────────────┤
+    "│        Tactical Planning            │ ← Mid-level objectives  
+    "├─────────────────────────────────────┤
+    "│       Operational Planning          │ ← Specific actions
+    "├─────────────────────────────────────┤
+    "│       Execution Monitoring          │ ← Progress tracking
+    "├─────────────────────────────────────┤
+    "│       Replanning & Adaptation       │ ← Dynamic adjustment
+    "└─────────────────────────────────────┘
+    "```
+    "
+    "### Planning Algorithms We'll Implement:
+    "1. **Hierarchical Task Networks (HTN)**: Top-down decomposition
+    "2. **Goal-Oriented Action Planning (GOAP)**: Bottom-up search
+    "3. **Monte Carlo Tree Search (MCTS)**: Probabilistic planning
+    "4. **Reactive Planning**: Real-time adaptation"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "setup-imports",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Enhanced imports for planning systems
+    "import openai
+    "import json
+    "import time
+    "import asyncio
+    "import networkx as nx
+    "import matplotlib.pyplot as plt
+    "import matplotlib.patches as mpatches
+    "from datetime import datetime, timedelta
+    "from typing import List, Dict, Any, Optional, Union, Tuple, Set
+    "from dataclasses import dataclass, field
+    "from enum import Enum
+    "from abc import ABC, abstractmethod
+    "import uuid
+    "import heapq
+    "import random
+    "import math
+    "from collections import defaultdict, deque
+    "import logging
+    "from pathlib import Path
+    "import copy
+    "from dotenv import load_dotenv
+    "
+    "# Load environment
+    "load_dotenv()
+    "
+    "# Setup logging
+    "logging.basicConfig(level=logging.INFO)
+    "logger = logging.getLogger(__name__)
+    "
+    "# Helper functions
+    "def print_section(title: str, content: str):
+    "    \"\"\"Enhanced section formatter\"\"\"
+    "    print(f\"\\n{'='*60}\")
+    "    print(f\"🎯 {title}\")
+    "    print(f\"{'='*60}\")
+    "    print(content)
+    "    print(f\"{'='*60}\\n\")
+    "
+    "def print_plan_step(step_num: int, action: str, details: str, status: str = \"pending\"):
+    "    \"\"\"Format plan step output\"\"\"
+    "    status_icons = {
+    "        "pending": \"⏳\",
+    "        "running": \"🔄\",
+    "        "completed": \"✅\",
+    "        "failed": \"❌\",
+    "        "skipped": \"⏭️\"
+    "    },
+    "    icon = status_icons.get(status, \"📋\")
+    "    print(f\"{icon} Step {step_num}: {action}\")
+    "    print(f\"    Details: {details}\")
+    "    if status != "pending":
+    "        print(f\"    Status: {status.title()}\")
+    "    print()
+    "
+    "print(\"✅ Planning system environment ready!\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "planning-data-structures",
+   "metadata": {},
+   "source": [
+    "## 📋 Core Planning Data Structures
+    "
+    "Let's define the fundamental data structures that will power our planning system."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "planning-structures",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Core planning data structures
+    "
+    "class TaskStatus(Enum):
+    "    \"\"\"Status of individual tasks in a plan\"\"\"
+    "    PENDING = \"pending\"
+    "    READY = \"ready\"           # Dependencies satisfied
+    "    RUNNING = \"running\"
+    "    COMPLETED = \"completed\"
+    "    FAILED = \"failed\"
+    "    SKIPPED = \"skipped\"
+    "    BLOCKED = \"blocked\"       # Dependencies not satisfied
+    "
+    "class PlanStatus(Enum):
+    "    \"\"\"Overall status of a plan\"\"\"
+    "    DRAFT = \"draft\"
+    "    ACTIVE = \"active\"
+    "    COMPLETED = \"completed\"
+    "    FAILED = \"failed\"
+    "    PAUSED = \"paused\"
+    "    CANCELLED = \"cancelled\"
+    "
+    "class Priority(Enum):
+    "    \"\"\"Task priority levels\"\"\"
+    "    LOW = 1
+    "    MEDIUM = 2
+    "    HIGH = 3
+    "    CRITICAL = 4
+    "    URGENT = 5
+    "
+    "@dataclass
+    "class Condition:
+    "    \"\"\"Represents a condition that must be met\"\"\"
+    "    name: str
+    "    description: str
+    "    check_function: callable = None
+    "    satisfied: bool = False
+    "    
+    "    def evaluate(self, context: Dict[str, Any]) -> bool:
+    "        \"\"\"Evaluate if condition is satisfied given current context\"\"\"
+    "        if self.check_function:
+    "            self.satisfied = self.check_function(context)
+    "        return self.satisfied
+    "
+    "@dataclass
+    "class Resource:
+    "    \"\"\"Represents a resource required for task execution\"\"\"
+    "    name: str
+    "    type: str  # \"tool\", \"data\", \"credential\", \"time\", etc.
+    "    required_amount: float = 1.0
+    "    available_amount: float = 1.0
+    "    renewable: bool = True
+    "    
+    "    @property
+    "    def is_available(self) -> bool:
+    "        return self.available_amount >= self.required_amount
+    "
+    "@dataclass
+    "class Task:
+    "    \"\"\"Represents a single task in a plan\"\"\"
+    "    id: str
+    "    name: str
+    "    description: str
+    "    action: str                              # Tool/method to execute
+    "    parameters: Dict[str, Any] = field(default_factory=dict)
+    "    
+    "    # Status and progress
+    "    status: TaskStatus = TaskStatus.PENDING
+    "    priority: Priority = Priority.MEDIUM
+    "    progress: float = 0.0                    # 0.0 to 1.0
+    "    
+    "    # Dependencies and relationships
+    "    dependencies: List[str] = field(default_factory=list)  # Task IDs that must complete first
+    "    dependents: List[str] = field(default_factory=list)    # Tasks that depend on this one
+    "    
+    "    # Conditions and resources
+    "    preconditions: List[Condition] = field(default_factory=list)
+    "    postconditions: List[Condition] = field(default_factory=list)
+    "    required_resources: List[Resource] = field(default_factory=list)
+    "    
+    "    # Timing and constraints
+    "    estimated_duration: Optional[timedelta] = None
+    "    actual_duration: Optional[timedelta] = None
+    "    deadline: Optional[datetime] = None
+    "    earliest_start: Optional[datetime] = None
+    "    
+    "    # Execution tracking
+    "    start_time: Optional[datetime] = None
+    "    end_time: Optional[datetime] = None
+    "    result: Any = None
+    "    error: Optional[str] = None
+    "    retry_count: int = 0
+    "    max_retries: int = 3
+    "    
+    "    def can_start(self, completed_tasks: Set[str], context: Dict[str, Any]) -> bool:
+    "        \"\"\"Check if task can be started given current state\"\"\"
+    "        # Check dependencies
+    "        if not all(dep_id in completed_tasks for dep_id in self.dependencies):
+    "            return False
+    "        
+    "        # Check preconditions
+    "        if not all(condition.evaluate(context) for condition in self.preconditions):
+    "            return False
+    "        
+    "        # Check resources
+    "        if not all(resource.is_available for resource in self.required_resources):
+    "            return False
+    "        
+    "        # Check timing constraints
+    "        now = datetime.now()
+    "        if self.earliest_start and now < self.earliest_start:
+    "            return False
+    "        
+    "        return True
+    "    
+    "    def is_overdue(self) -> bool:
+    "        \"\"\"Check if task is past its deadline\"\"\"
+    "        return self.deadline and datetime.now() > self.deadline
+    "
+    "@dataclass
+    "class Plan:
+    "    \"\"\"Represents a complete plan with multiple tasks\"\"\"
+    "    id: str
+    "    name: str
+    "    description: str
+    "    goal: str
+    "    
+    "    # Plan structure
+    "    tasks: Dict[str, Task] = field(default_factory=dict)
+    "    task_order: List[str] = field(default_factory=list)  # Topological order
+    "    
+    "    # Status and tracking
+    "    status: PlanStatus = PlanStatus.DRAFT
+    "    created_at: datetime = field(default_factory=datetime.now)
+    "    started_at: Optional[datetime] = None
+    "    completed_at: Optional[datetime] = None
+    "    
+    "    # Execution context
+    "    context: Dict[str, Any] = field(default_factory=dict)
+    "    resources: Dict[str, Resource] = field(default_factory=dict)
+    "    
+    "    # Statistics
+    "    total_estimated_duration: Optional[timedelta] = None
+    "    actual_duration: Optional[timedelta] = None
+    "    
+    "    def add_task(self, task: Task) -> bool:
+    "        \"\"\"Add a task to the plan\"\"\"
+    "        if task.id in self.tasks:
+    "            logger.warning(f\"Task {task.id} already exists in plan\")
+    "            return False
+    "        
+    "        self.tasks[task.id] = task
+    "        self._update_task_order()
+    "        return True
+    "    
+    "    def remove_task(self, task_id: str) -> bool:
+    "        \"\"\"Remove a task from the plan\"\"\"
+    "        if task_id not in self.tasks:
+    "            return False
+    "        
+    "        # Remove dependencies
+    "        task = self.tasks[task_id]
+    "        for dep_id in task.dependencies:
+    "            if dep_id in self.tasks:
+    "                self.tasks[dep_id].dependents.remove(task_id)
+    "        
+    "        for dependent_id in task.dependents:
+    "            if dependent_id in self.tasks:
+    "                self.tasks[dependent_id].dependencies.remove(task_id)
+    "        
+    "        del self.tasks[task_id]
+    "        self._update_task_order()
+    "        return True
+    "    
+    "    def get_ready_tasks(self) -> List[Task]:
+    "        \"\"\"Get tasks that are ready to execute\"\"\"
+    "        completed_tasks = {tid for tid, task in self.tasks.items() 
+    "                          if task.status == TaskStatus.COMPLETED}
+    "        
+    "        ready_tasks = []
+    "        for task in self.tasks.values():
+    "            if (task.status == TaskStatus.PENDING and 
+    "                task.can_start(completed_tasks, self.context)):
+    "                ready_tasks.append(task)
+    "        
+    "        # Sort by priority and then by position in task order
+    "        ready_tasks.sort(key=lambda t: (t.priority.value, self.task_order.index(t.id)), reverse=True)
+    "        return ready_tasks
+    "    
+    "    def get_progress(self) -> float:
+    "        \"\"\"Calculate overall plan progress (0.0 to 1.0)\"\"\"
+    "        if not self.tasks:
+    "            return 1.0
+    "        
+    "        total_progress = sum(task.progress for task in self.tasks.values())
+    "        return total_progress / len(self.tasks)
+    "    
+    "    def is_complete(self) -> bool:
+    "        \"\"\"Check if all tasks are completed\"\"\"
+    "        return all(task.status == TaskStatus.COMPLETED for task in self.tasks.values())
+    "    
+    "    def has_failed(self) -> bool:
+    "        \"\"\"Check if any critical task has failed\"\"\"
+    "        return any(task.status == TaskStatus.FAILED and task.priority.value >= Priority.HIGH.value 
+    "                  for task in self.tasks.values())
+    "    
+    "    def _update_task_order(self):
+    "        \"\"\"Update topological ordering of tasks\"\"\"
+    "        # Build dependency graph
+    "        graph = defaultdict(list)
+    "        in_degree = defaultdict(int)
+    "        
+    "        for task_id in self.tasks:
+    "            in_degree[task_id] = 0
+    "        
+    "        for task_id, task in self.tasks.items():
+    "            for dep_id in task.dependencies:
+    "                graph[dep_id].append(task_id)
+    "                in_degree[task_id] += 1
+    "        
+    "        # Topological sort
+    "        queue = deque([task_id for task_id in self.tasks if in_degree[task_id] == 0])
+    "        self.task_order = []
+    "        
+    "        while queue:
+    "            current = queue.popleft()
+    "            self.task_order.append(current)
+    "            
+    "            for neighbor in graph[current]:
+    "                in_degree[neighbor] -= 1
+    "                if in_degree[neighbor] == 0:
+    "                    queue.append(neighbor)
+    "        
+    "        # Check for circular dependencies
+    "        if len(self.task_order) != len(self.tasks):
+    "            logger.error(\"Circular dependency detected in plan\")
+    "            self.task_order = list(self.tasks.keys())  # Fallback
+    "
+    "print(\"✅ Planning data structures defined!\")
+    "print(\"📋 Core components: Task, Plan, Condition, Resource\")
+    "print(\"🔄 Status tracking: TaskStatus, PlanStatus, Priority\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "hierarchical-planner",
+   "metadata": {},
+   "source": [
+    "## 🌲 Hierarchical Task Network (HTN) Planner
+    "
+    "HTN planning works by decomposing high-level tasks into lower-level subtasks until we reach primitive actions. This mimics how humans naturally break down complex problems."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "htn-planner",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "class HTNPlanner:
+    "    \"\"\"Hierarchical Task Network planner for goal decomposition\"\"\"
+    "    
+    "    def __init__(self, llm_client=None):
+    "        self.llm_client = llm_client
+    "        self.decomposition_rules = {}  # Task type -> decomposition function
+    "        self.primitive_actions = set()  # Actions that don't need further decomposition
+    "        self.planning_history = []     # Keep track of planning decisions
+    "    
+    "    def register_decomposition_rule(self, task_type: str, decomposition_func: callable):
+    "        \"\"\"Register a rule for decomposing a specific type of task\"\"\"
+    "        self.decomposition_rules[task_type] = decomposition_func
+    "        logger.info(f\"Registered decomposition rule for task type: {task_type}\")
+    "    
+    "    def register_primitive_action(self, action_name: str):
+    "        \"\"\"Register an action as primitive (no further decomposition needed)\"\"\"
+    "        self.primitive_actions.add(action_name)
+    "        logger.info(f\"Registered primitive action: {action_name}\")
+    "    
+    "    def create_plan(self, goal: str, context: Dict[str, Any] = None) -> Plan:
+    "        \"\"\"Create a hierarchical plan for achieving the given goal\"\"\"
+    "        context = context or {}
+    "        
+    "        plan = Plan(
+    "            id=str(uuid.uuid4()),
+    "            name=f\"Plan for: {goal}\",
+    "            description=f\"Hierarchical plan to achieve: {goal}\",
+    "            goal=goal,
+    "            context=context
+    "        )
+    "        
+    "        logger.info(f\"Creating HTN plan for goal: {goal}\")
+    "        
+    "        # Start with the root task
+    "        root_task = Task(
+    "            id=\"root\",
+    "            name=goal,
+    "            description=f\"Root task: {goal}\",
+    "            action=\"decompose\",
+    "            priority=Priority.HIGH
+    "        )
+    "        
+    "        # Decompose the goal hierarchically
+    "        decomposed_tasks = self._decompose_task(root_task, context, plan)
+    "        
+    "        # Add all tasks to the plan
+    "        for task in decomposed_tasks:
+    "            plan.add_task(task)
+    "        
+    "        # Estimate total duration
+    "        plan.total_estimated_duration = self._estimate_plan_duration(plan)
+    "        
+    "        logger.info(f\"HTN plan created with {len(plan.tasks)} tasks\")
+    "        return plan
+    "    
+    "    def _decompose_task(self, task: Task, context: Dict[str, Any], plan: Plan) -> List[Task]:
+    "        \"\"\"Recursively decompose a task into subtasks\"\"\"
+    "        
+    "        # If task is primitive, return it as-is
+    "        if task.action in self.primitive_actions:
+    "            return [task]
+    "        
+    "        # Try to find a decomposition rule
+    "        task_type = self._classify_task(task)
+    "        
+    "        if task_type in self.decomposition_rules:
+    "            # Use predefined decomposition rule
+    "            subtasks = self.decomposition_rules[task_type](task, context)
+    "        else:
+    "            # Use LLM-based decomposition
+    "            subtasks = self._llm_decompose_task(task, context)
+    "        
+    "        # Recursively decompose subtasks
+    "        all_tasks = []
+    "        for subtask in subtasks:
+    "            decomposed_subtasks = self._decompose_task(subtask, context, plan)
+    "            all_tasks.extend(decomposed_subtasks)
+    "        
+    "        # Record planning decision
+    "        self.planning_history.append({
+    "            'timestamp': datetime.now(),
+    "            'action': 'decompose',
+    "            'parent_task': task.name,
+    "            'subtasks': [t.name for t in subtasks],
+    "            'method': task_type if task_type in self.decomposition_rules else 'llm'
+    "        })
+    "        
+    "        return all_tasks
+    "    
+    "    def _classify_task(self, task: Task) -> str:
+    "        \"\"\"Classify task type for decomposition\"\"\"
+    "        task_name = task.name.lower()
+    "        task_desc = task.description.lower()
+    "        
+    "        # Simple keyword-based classification
+    "        if any(word in task_name for word in ['analyze', 'analysis', 'study']):
+    "            return 'analysis'
+    "        elif any(word in task_name for word in ['report', 'document', 'write']):
+    "            return 'documentation'
+    "        elif any(word in task_name for word in ['research', 'investigate', 'find']):
+    "            return 'research'
+    "        elif any(word in task_name for word in ['communicate', 'notify', 'send']):
+    "            return 'communication'
+    "        elif any(word in task_name for word in ['process', 'transform', 'convert']):
+    "            return 'data_processing'
+    "        else:
+    "            return 'general'
+    "    
+    "    def _llm_decompose_task(self, task: Task, context: Dict[str, Any]) -> List[Task]:
+    "        \"\"\"Use LLM to decompose a task into subtasks\"\"\"
+    "        
+    "        if not self.llm_client:
+    "            # Fallback to simple decomposition
+    "            return self._simple_decompose_task(task)
+    "        
+    "        decomposition_prompt = f\"\"\"
+    "Decompose the following task into specific, actionable subtasks:
+    "
+    "Task: {task.name}
+    "Description: {task.description}
+    "Context: {json.dumps(context, indent=2)}
+    "
+    "Available tools/actions: database_query, web_api, file_processor, email_sender
+    "
+    "Requirements:
+    "1. Break the task into 2-5 concrete subtasks
+    "2. Each subtask should be specific and actionable
+    "3. Consider dependencies between subtasks
+    "4. Estimate duration for each subtask (in minutes)
+    "5. Assign appropriate priority (1-5, where 5 is highest)
+    "
+    "Respond with JSON format:
+    "{{
+    "  "subtasks": [
+    "    {{
+    "      "name": \"Subtask name\",
+    "      "description": \"Detailed description\",
+    "      "action": \"tool_name or action_type\",
+    "      "parameters": {{"key": \"value\"}},
+    "      "estimated_duration_minutes": 30,
+    "      "priority": 3,
+    "      "dependencies": [\"other_subtask_names\"]
+    "    }}
+    "  ]
+    "}}
+    "\"\"\"
+    "        
+    "        try:
+    "            response = self.llm_client.chat.completions.create(
+    "                model=\"gpt-4\",
+    "                messages=[{"role": \"user\", "content": decomposition_prompt}],
+    "                temperature=0.2,
+    "                max_tokens=1500
+    "            )
+    "            
+    "            response_text = response.choices[0].message.content
+    "            
+    "            # Extract JSON from response
+    "            json_start = response_text.find('{')
+    "            json_end = response_text.rfind('}') + 1
+    "            if json_start >= 0 and json_end > json_start:
+    "                json_text = response_text[json_start:json_end]
+    "                decomposition_data = json.loads(json_text)
+    "                
+    "                subtasks = []
+    "                for i, subtask_data in enumerate(decomposition_data['subtasks']):
+    "                    subtask = Task(
+    "                        id=f\"{task.id}_sub_{i}\",
+    "                        name=subtask_data['name'],
+    "                        description=subtask_data['description'],
+    "                        action=subtask_data['action'],
+    "                        parameters=subtask_data.get('parameters', {}),
+    "                        estimated_duration=timedelta(minutes=subtask_data.get('estimated_duration_minutes', 30)),
+    "                        priority=Priority(subtask_data.get('priority', 3))
+    "                    )
+    "                    subtasks.append(subtask)
+    "                
+    "                # Set up dependencies
+    "                for i, subtask_data in enumerate(decomposition_data['subtasks']):
+    "                    deps = subtask_data.get('dependencies', [])
+    "                    for dep_name in deps:
+    "                        # Find dependency by name
+    "                        for j, dep_task in enumerate(subtasks):
+    "                            if dep_task.name == dep_name:
+    "                                subtasks[i].dependencies.append(dep_task.id)
+    "                                dep_task.dependents.append(subtasks[i].id)
+    "                                break
+    "                
+    "                return subtasks
+    "        
+    "        except Exception as e:
+    "            logger.error(f\"LLM decomposition failed: {e}\")
+    "        
+    "        # Fallback to simple decomposition
+    "        return self._simple_decompose_task(task)
+    "    
+    "    def _simple_decompose_task(self, task: Task) -> List[Task]:
+    "        \"\"\"Simple fallback decomposition based on task classification\"\"\"
+    "        task_type = self._classify_task(task)
+    "        
+    "        if task_type == 'analysis':
+    "            return [
+    "                Task(
+    "                    id=f\"{task.id}_gather\",
+    "                    name=f\"Gather data for {task.name}\",
+    "                    description=f\"Collect relevant data for analysis\",
+    "                    action=\"database_query\",
+    "                    estimated_duration=timedelta(minutes=15)
+    "                ),
+    "                Task(
+    "                    id=f\"{task.id}_analyze\",
+    "                    name=f\"Perform {task.name}\",
+    "                    description=f\"Analyze the gathered data\",
+    "                    action=\"analyze_data\",
+    "                    dependencies=[f\"{task.id}_gather\"],
+    "                    estimated_duration=timedelta(minutes=30)
+    "                )
+    "            ]
+    "        elif task_type == 'documentation':
+    "            return [
+    "                Task(
+    "                    id=f\"{task.id}_draft\",
+    "                    name=f\"Draft {task.name}\",
+    "                    description=f\"Create initial draft\",
+    "                    action=\"file_processor\",
+    "                    estimated_duration=timedelta(minutes=45)
+    "                ),
+    "                Task(
+    "                    id=f\"{task.id}_review\",
+    "                    name=f\"Review {task.name}\",
+    "                    description=f\"Review and finalize document\",
+    "                    action=\"review_document\",
+    "                    dependencies=[f\"{task.id}_draft\"],
+    "                    estimated_duration=timedelta(minutes=15)
+    "                )
+    "            ]
+    "        else:
+    "            # Generic decomposition
+    "            return [
+    "                Task(
+    "                    id=f\"{task.id}_execute\",
+    "                    name=f\"Execute {task.name}\",
+    "                    description=task.description,
+    "                    action=task.action,
+    "                    parameters=task.parameters,
+    "                    estimated_duration=timedelta(minutes=30)
+    "                )
+    "            ]
+    "    
+    "    def _estimate_plan_duration(self, plan: Plan) -> timedelta:
+    "        \"\"\"Estimate total plan duration considering dependencies\"\"\"
+    "        if not plan.tasks:
+    "            return timedelta(0)
+    "        
+    "        # Simple critical path estimation
+    "        max_duration = timedelta(0)
+    "        for task in plan.tasks.values():
+    "            if task.estimated_duration:
+    "                max_duration = max(max_duration, task.estimated_duration)
+    "        
+    "        # Add some buffer for coordination overhead
+    "        return max_duration * len(plan.tasks) * 0.3  # Rough estimate
+    "
+    "# Register some common decomposition rules
+    "htn_planner = HTNPlanner(llm_client=openai.OpenAI(api_key=os.getenv(\"OPENAI_API_KEY\", \"your-api-key\")))
+    "
+    "# Register primitive actions
+    "primitive_actions = [
+    "    'database_query', 'web_api', 'file_processor', 'email_sender',
+    "    'calculate', 'validate', 'format', 'send', 'save', 'load'
+    "]
+    "
+    "for action in primitive_actions:
+    "    htn_planner.register_primitive_action(action)
+    "
+    "print(\"✅ HTN Planner created!\")
+    "print(f\"🔧 Registered {len(primitive_actions)} primitive actions\")
+    "print(\"🌲 Ready for hierarchical task decomposition\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "guided-exercise-planning",
+   "metadata": {},
+   "source": [
+    "## 💡 Guided Exercise: Build a Goal-Oriented Action Planner
+    "
+    "Now it's your turn! Implement a Goal-Oriented Action Planning (GOAP) system that works backwards from goals to find action sequences.
+    "
+    "**GOAP Concept:** Start with the goal state and work backwards to find a sequence of actions that can achieve it from the current state."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "guided-exercise-goap",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "class GOAPPlanner:
+    "    \"\"\"Goal-Oriented Action Planning system\"\"\"
+    "    
+    "    def __init__(self):
+    "        self.actions = {}  # action_name -> Action definition
+    "        self.world_state = {}  # Current state of the world
+    "    
+    "    def register_action(self, name: str, preconditions: Dict[str, Any], 
+    "                       effects: Dict[str, Any], cost: float = 1.0):
+    "        \"\"\"Register an action with its preconditions and effects\"\"\"
+    "        self.actions[name] = {
+    "            'preconditions': preconditions,
+    "            'effects': effects,
+    "            'cost': cost
+    "        },
+    "    
+    "    def set_world_state(self, state: Dict[str, Any]):
+    "        \"\"\"Set the current world state\"\"\"
+    "        self.world_state = state.copy()
+    "    
+    "    def plan(self, goal_state: Dict[str, Any]) -> List[str]:
+    "        \"\"\"
+    "        Find a sequence of actions to achieve the goal state.
+    "        
+    "        YOUR TASK: Implement the GOAP planning algorithm using A* search.
+    "        
+    "        Steps to implement:
+    "        1. Start from the goal state and work backwards
+    "        2. Use A* search to find the optimal action sequence
+    "        3. Each node represents a world state
+    "        4. Each edge represents an action
+    "        5. Return the sequence of actions from start to goal
+    "        \"\"\"
+    "        
+    "        ### START CODE HERE ###
+    "        
+    "        # Check if goal is already satisfied
+    "        if self._state_satisfies_goal(self.world_state, goal_state):
+    "            return []  # No actions needed
+    "        
+    "        # A* search data structures
+    "        # Priority queue: (f_cost, g_cost, state, action_sequence)
+    "        open_set = []
+    "        closed_set = set()
+    "        
+    "        # Add starting state
+    "        start_state_key = self._state_to_key(self.world_state)
+    "        heapq.heappush(open_set, (
+    "            self._heuristic(self.world_state, goal_state),  # f_cost = h_cost (g_cost = 0)
+    "            0,                                              # g_cost
+    "            self.world_state.copy(),                       # current state
+    "            []                                             # action sequence
+    "        ))
+    "        
+    "        while open_set:
+    "            # Get the node with lowest f_cost
+    "            f_cost, g_cost, current_state, action_sequence = heapq.heappop(open_set)
+    "            
+    "            # Convert state to hashable key for closed set
+    "            state_key = self._state_to_key(current_state)
+    "            
+    "            # Skip if already processed
+    "            if state_key in closed_set:
+    "                continue
+    "            
+    "            # Add to closed set
+    "            closed_set.add(state_key)
+    "            
+    "            # Check if we've reached the goal
+    "            if self._state_satisfies_goal(current_state, goal_state):
+    "                return action_sequence
+    "            
+    "            # Explore all possible actions from current state
+    "            for action_name, action_data in self.actions.items():
+    "                # YOUR CODE: Check if action can be applied to current state
+    "                if self._can_apply_action(current_state, action_data['preconditions']):
+    "                    # YOUR CODE: Apply action to get new state
+    "                    new_state = self._apply_action(current_state, action_data['effects'])
+    "                    new_state_key = self._state_to_key(new_state)
+    "                    
+    "                    # Skip if already processed
+    "                    if new_state_key in closed_set:
+    "                        continue
+    "                    
+    "                    # Calculate costs
+    "                    new_g_cost = g_cost + action_data['cost']
+    "                    h_cost = self._heuristic(new_state, goal_state)
+    "                    new_f_cost = new_g_cost + h_cost
+    "                    
+    "                    # Add to open set
+    "                    new_action_sequence = action_sequence + [action_name]
+    "                    heapq.heappush(open_set, (
+    "                        new_f_cost,
+    "                        new_g_cost,
+    "                        new_state,
+    "                        new_action_sequence
+    "                    ))
+    "        
+    "        # No solution found
+    "        return None
+    "        
+    "        ### END CODE HERE ###
+    "    
+    "    def _state_satisfies_goal(self, state: Dict[str, Any], goal: Dict[str, Any]) -> bool:
+    "        \"\"\"Check if current state satisfies the goal\"\"\"
+    "        for key, value in goal.items():
+    "            if state.get(key) != value:
+    "                return False
+    "        return True
+    "    
+    "    def _can_apply_action(self, state: Dict[str, Any], preconditions: Dict[str, Any]) -> bool:
+    "        \"\"\"Check if action preconditions are satisfied in current state\"\"\"
+    "        for key, value in preconditions.items():
+    "            if state.get(key) != value:
+    "                return False
+    "        return True
+    "    
+    "    def _apply_action(self, state: Dict[str, Any], effects: Dict[str, Any]) -> Dict[str, Any]:
+    "        \"\"\"Apply action effects to state and return new state\"\"\"
+    "        new_state = state.copy()
+    "        new_state.update(effects)
+    "        return new_state
+    "    
+    "    def _state_to_key(self, state: Dict[str, Any]) -> str:
+    "        \"\"\"Convert state dict to hashable string key\"\"\"
+    "        return json.dumps(state, sort_keys=True)
+    "    
+    "    def _heuristic(self, state: Dict[str, Any], goal: Dict[str, Any]) -> float:
+    "        \"\"\"
+    "        Heuristic function for A* search.
+    "        
+    "        YOUR TASK: Implement a heuristic that estimates the cost to reach the goal.
+    "        
+    "        A good heuristic should be:
+    "        - Admissible (never overestimate the actual cost)
+    "        - Consistent (satisfies triangle inequality)
+    "        \"\"\"
+    "        
+    "        ### START CODE HERE ###
+    "        
+    "        # Simple heuristic: count unsatisfied goal conditions
+    "        unsatisfied_count = 0
+    "        for key, value in goal.items():
+    "            if state.get(key) != value:
+    "                unsatisfied_count += 1
+    "        
+    "        # Return the count as heuristic cost
+    "        return float(unsatisfied_count)
+    "        
+    "        ### END CODE HERE ###
+    "
+    "# Test the GOAP planner
+    "goap_planner = GOAPPlanner()
+    "
+    "# Define some actions for a simple domain
+    "goap_planner.register_action(
+    "    name=\"gather_data\",
+    "    preconditions={"has_database_access": True},
+    "    effects={"has_data": True},
+    "    cost=2.0
+    ")
+    "
+    "goap_planner.register_action(
+    "    name=\"connect_to_database\",
+    "    preconditions={"has_credentials": True},
+    "    effects={"has_database_access": True},
+    "    cost=1.0
+    ")
+    "
+    "goap_planner.register_action(
+    "    name=\"analyze_data\",
+    "    preconditions={"has_data": True, "has_analysis_tool": True},
+    "    effects={"has_analysis": True},
+    "    cost=3.0
+    ")
+    "
+    "goap_planner.register_action(
+    "    name=\"generate_report\",
+    "    preconditions={"has_analysis": True},
+    "    effects={"has_report": True},
+    "    cost=2.0
+    ")
+    "
+    "# Set initial world state
+    "initial_state = {
+    "    "has_credentials": True,
+    "    "has_analysis_tool": True,
+    "    "has_database_access": False,
+    "    "has_data": False,
+    "    "has_analysis": False,
+    "    "has_report": False
+    "}
+    "
+    "goap_planner.set_world_state(initial_state)
+    "
+    "# Define goal
+    "goal = {"has_report": True}
+    "
+    "print(\"🎯 Testing GOAP Planner:\")
+    "print(f\"Initial state: {initial_state}\")
+    "print(f\"Goal: {goal}\")
+    "
+    "# Find plan
+    "action_sequence = goap_planner.plan(goal)
+    "
+    "if action_sequence:
+    "    print(f\"\\n✅ Found plan with {len(action_sequence)} actions:\")
+    "    for i, action in enumerate(action_sequence, 1):
+    "        print(f\"  {i}. {action}\")
+    "else:
+    "    print(\"\\n❌ No plan found to achieve the goal\")
+    "
+    "print(f\"\\n📊 GOAP planner configured with {len(goap_planner.actions)} actions\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "solution-reveal-goap",
+   "metadata": {},
+   "source": [
+    "### 🔍 Solution Reveal - GOAP Planner
+    "
+    "Here's the complete solution for the GOAP planner:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "solution-goap",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# SOLUTION - GOAP Planning Algorithm
+    "\"\"\"
+    "The key insight in GOAP is using A* search where:
+    "- Each node represents a world state
+    "- Each edge represents an action that transforms the state
+    "- We search from current state to goal state
+    "- The heuristic estimates remaining cost to reach goal
+    "
+    "Here's the corrected implementation:
+    "
+    "def _can_apply_action(self, state, preconditions):
+    "    for key, value in preconditions.items():
+    "        if state.get(key) != value:
+    "            return False
+    "    return True
+    "
+    "def _apply_action(self, state, effects):
+    "    new_state = state.copy()
+    "    new_state.update(effects)
+    "    return new_state
+    "
+    "def _heuristic(self, state, goal):
+    "    # Count unsatisfied goal conditions
+    "    unsatisfied = 0
+    "    for key, value in goal.items():
+    "        if state.get(key) != value:
+    "            unsatisfied += 1
+    "    return float(unsatisfied)
+    "
+    "The A* search ensures we find the optimal (lowest cost) plan.
+    "\"\"\"
+    "
+    "print(\"💡 GOAP Solution explained:\")
+    "print(\"  • A* search finds optimal action sequences\")
+    "print(\"  • Preconditions must be satisfied to apply actions\")
+    "print(\"  • Effects modify the world state\")
+    "print(\"  • Heuristic guides search toward goal\")
+    "print(\"  • Works backwards from goal to current state\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "plan-executor",
+   "metadata": {},
+   "source": [
+    "## ⚙️ Adaptive Plan Executor
+    "
+    "Now let's build an executor that can run plans while adapting to changing conditions and handling failures."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "plan-executor-impl",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "class AdaptivePlanExecutor:
+    "    \"\"\"Executes plans with monitoring, adaptation, and error recovery\"\"\"
+    "    
+    "    def __init__(self, tool_manager=None, memory_manager=None, replanner=None):
+    "        self.tool_manager = tool_manager
+    "        self.memory_manager = memory_manager
+    "        self.replanner = replanner or htn_planner
+    "        
+    "        # Execution state
+    "        self.current_plan = None
+    "        self.execution_context = {}
+    "        self.monitoring_data = []
+    "        
+    "        # Configuration
+    "        self.max_execution_time = timedelta(hours=2)
+    "        self.monitoring_interval = 5  # seconds
+    "        self.replan_threshold = 0.3   # Replan if progress drops below 30%
+    "    
+    "    async def execute_plan(self, plan: Plan) -> Dict[str, Any]:
+    "        \"\"\"Execute a plan with adaptive monitoring and error recovery\"\"\"
+    "        
+    "        self.current_plan = plan
+    "        plan.status = PlanStatus.ACTIVE
+    "        plan.started_at = datetime.now()
+    "        
+    "        logger.info(f\"Starting execution of plan: {plan.name}\")
+    "        print_section(\"PLAN EXECUTION STARTED\", f\"Executing: {plan.name}\\nGoal: {plan.goal}\")
+    "        
+    "        execution_result = {
+    "            'plan_id': plan.id,
+    "            'started_at': plan.started_at,
+    "            'status': 'running',
+    "            'tasks_completed': 0,
+    "            'tasks_failed': 0,
+    "            'replanning_events': 0,
+    "            'error_recoveries': 0
+    "        },
+    "        
+    "        try:
+    "            # Main execution loop
+    "            while not plan.is_complete() and not plan.has_failed():
+    "                # Check for timeout
+    "                if datetime.now() - plan.started_at > self.max_execution_time:
+    "                    logger.error(\"Plan execution timed out\")
+    "                    plan.status = PlanStatus.FAILED
+    "                    execution_result['status'] = 'timeout'
+    "                    break
+    "                
+    "                # Get ready tasks
+    "                ready_tasks = plan.get_ready_tasks()
+    "                
+    "                if not ready_tasks:
+    "                    # No tasks ready - check if we're blocked
+    "                    if self._is_plan_blocked(plan):
+    "                        logger.warning(\"Plan is blocked - attempting to replan\")
+    "                        replan_success = await self._attempt_replan(plan)
+    "                        execution_result['replanning_events'] += 1
+    "                        
+    "                        if not replan_success:
+    "                            logger.error(\"Replanning failed - plan execution blocked\")
+    "                            plan.status = PlanStatus.FAILED
+    "                            execution_result['status'] = 'blocked'
+    "                            break
+    "                        continue
+    "                    else:
+    "                        # Wait for running tasks to complete
+    "                        await asyncio.sleep(1)
+    "                        continue
+    "                
+    "                # Execute ready tasks (can run multiple in parallel)
+    "                execution_tasks = []
+    "                for task in ready_tasks[:3]:  # Limit parallelism
+    "                    task.status = TaskStatus.RUNNING
+    "                    execution_tasks.append(self._execute_task(task))
+    "                
+    "                # Wait for tasks to complete
+    "                task_results = await asyncio.gather(*execution_tasks, return_exceptions=True)
+    "                
+    "                # Process results
+    "                for i, result in enumerate(task_results):
+    "                    task = ready_tasks[i]
+    "                    
+    "                    if isinstance(result, Exception):
+    "                        logger.error(f\"Task {task.name} failed with exception: {result}\")
+    "                        await self._handle_task_failure(task, str(result), execution_result)
+    "                    elif result['success']:
+    "                        await self._handle_task_success(task, result, execution_result)
+    "                    else:
+    "                        await self._handle_task_failure(task, result.get('error', 'Unknown error'), execution_result)
+    "                
+    "                # Monitor and log progress
+    "                await self._monitor_progress(plan, execution_result)
+    "            
+    "            # Plan completed
+    "            if plan.is_complete():
+    "                plan.status = PlanStatus.COMPLETED
+    "                plan.completed_at = datetime.now()
+    "                execution_result['status'] = 'completed'
+    "                logger.info(f\"Plan {plan.name} completed successfully\")
+    "            elif plan.has_failed():
+    "                plan.status = PlanStatus.FAILED
+    "                execution_result['status'] = 'failed'
+    "                logger.error(f\"Plan {plan.name} failed\")
+    "        
+    "        except Exception as e:
+    "            logger.error(f\"Unexpected error during plan execution: {e}\")
+    "            plan.status = PlanStatus.FAILED
+    "            execution_result['status'] = 'error'
+    "            execution_result['error'] = str(e)
+    "        
+    "        finally:
+    "            execution_result['completed_at'] = datetime.now()
+    "            execution_result['total_duration'] = (
+    "                execution_result['completed_at'] - plan.started_at
+    "            ).total_seconds()
+    "            
+    "            # Final progress report
+    "            self._print_execution_summary(plan, execution_result)
+    "        
+    "        return execution_result
+    "    
+    "    async def _execute_task(self, task: Task) -> Dict[str, Any]:
+    "        \"\"\"Execute a single task\"\"\"
+    "        task.start_time = datetime.now()
+    "        
+    "        logger.info(f\"Executing task: {task.name}\")
+    "        print_plan_step(len([t for t in self.current_plan.tasks.values() if t.status == TaskStatus.COMPLETED]) + 1,
+    "                       task.name, task.description, \"running\")
+    "        
+    "        try:
+    "            if self.tool_manager and task.action in self.tool_manager.tools:
+    "                # Execute using tool manager
+    "                tool_result = self.tool_manager.execute_tool(task.action, task.parameters)
+    "                
+    "                if tool_result.is_success:
+    "                    task.result = tool_result.data
+    "                    return {
+    "                        'success': True,
+    "                        'result': tool_result.data,
+    "                        'execution_time': tool_result.execution_time
+    "                    },
+    "                else:
+    "                    return {
+    "                        'success': False,
+    "                        'error': tool_result.error
+    "                    },
+    "            else:
+    "                # Simulate task execution
+    "                await asyncio.sleep(random.uniform(0.5, 2.0))  # Simulate work
+    "                
+    "                # Random success/failure for demonstration
+    "                success = random.random() > 0.1  # 90% success rate
+    "                
+    "                if success:
+    "                    task.result = f\"Completed: {task.name}\"
+    "                    return {
+    "                        'success': True,
+    "                        'result': task.result
+    "                    },
+    "                else:
+    "                    return {
+    "                        'success': False,
+    "                        'error': 'Simulated task failure'
+    "                    },
+    "        
+    "        except Exception as e:
+    "            return {
+    "                'success': False,
+    "                'error': str(e)
+    "            },
+    "        
+    "        finally:
+    "            task.end_time = datetime.now()
+    "            if task.start_time:
+    "                task.actual_duration = task.end_time - task.start_time
+    "    
+    "    async def _handle_task_success(self, task: Task, result: Dict, execution_result: Dict):
+    "        \"\"\"Handle successful task completion\"\"\"
+    "        task.status = TaskStatus.COMPLETED
+    "        task.progress = 1.0
+    "        task.result = result.get('result')
+    "        
+    "        execution_result['tasks_completed'] += 1
+    "        
+    "        print_plan_step(execution_result['tasks_completed'], task.name, task.description, \"completed\")
+    "        
+    "        # Update context with task results
+    "        self.current_plan.context[f'task_{task.id}_result'] = task.result
+    "        
+    "        # Record in memory if available
+    "        if self.memory_manager:
+    "            self.memory_manager.add_experience(
+    "                action=task.action,
+    "                context=f\"Task: {task.name}\",
+    "                outcome=\"Success\",
+    "                success=True
+    "            )
+    "        
+    "        logger.info(f\"Task {task.name} completed successfully\")
+    "    
+    "    async def _handle_task_failure(self, task: Task, error: str, execution_result: Dict):
+    "        \"\"\"Handle task failure with retry and recovery logic\"\"\"
+    "        task.retry_count += 1
+    "        task.error = error
+    "        
+    "        logger.warning(f\"Task {task.name} failed (attempt {task.retry_count}): {error}\")
+    "        
+    "        if task.retry_count < task.max_retries:
+    "            # Retry the task
+    "            task.status = TaskStatus.PENDING
+    "            logger.info(f\"Retrying task {task.name} (attempt {task.retry_count + 1})\")
+    "            execution_result['error_recoveries'] += 1
+    "        else:
+    "            # Task has failed permanently
+    "            task.status = TaskStatus.FAILED
+    "            task.progress = 0.0
+    "            execution_result['tasks_failed'] += 1
+    "            
+    "            print_plan_step(execution_result['tasks_completed'] + execution_result['tasks_failed'], 
+    "                           task.name, task.description, \"failed\")
+    "            
+    "            # Record failure in memory
+    "            if self.memory_manager:
+    "                self.memory_manager.add_experience(
+    "                    action=task.action,
+    "                    context=f\"Task: {task.name}\",
+    "                    outcome=f\"Failed: {error}\",
+    "                    success=False
+    "                )
+    "            
+    "            # Check if failure blocks critical path
+    "            if task.priority.value >= Priority.HIGH.value:
+    "                logger.error(f\"Critical task {task.name} failed - plan may be compromised\")
+    "    
+    "    async def _monitor_progress(self, plan: Plan, execution_result: Dict):
+    "        \"\"\"Monitor plan progress and detect issues\"\"\"
+    "        progress = plan.get_progress()
+    "        
+    "        monitoring_data = {
+    "            'timestamp': datetime.now(),
+    "            'progress': progress,
+    "            'tasks_completed': execution_result['tasks_completed'],
+    "            'tasks_failed': execution_result['tasks_failed'],
+    "            'tasks_running': len([t for t in plan.tasks.values() if t.status == TaskStatus.RUNNING])
+    "        },
+    "        
+    "        self.monitoring_data.append(monitoring_data)
+    "        
+    "        # Check for progress issues
+    "        if len(self.monitoring_data) > 5:  # Check trend over last 5 measurements
+    "            recent_progress = [d['progress'] for d in self.monitoring_data[-5:]]
+    "            if all(p <= self.replan_threshold for p in recent_progress[-3:]):
+    "                logger.warning(f\"Low progress detected: {progress:.1%}\")
+    "    
+    "    def _is_plan_blocked(self, plan: Plan) -> bool:
+    "        \"\"\"Check if plan execution is blocked\"\"\"
+    "        pending_tasks = [t for t in plan.tasks.values() if t.status == TaskStatus.PENDING]
+    "        running_tasks = [t for t in plan.tasks.values() if t.status == TaskStatus.RUNNING]
+    "        
+    "        # Plan is blocked if there are pending tasks but none can start and none are running
+    "        if pending_tasks and not running_tasks:
+    "            ready_tasks = plan.get_ready_tasks()
+    "            return len(ready_tasks) == 0
+    "        
+    "        return False
+    "    
+    "    async def _attempt_replan(self, plan: Plan) -> bool:
+    "        \"\"\"Attempt to replan when execution is blocked\"\"\"
+    "        logger.info(\"Attempting to replan due to execution issues\")
+    "        
+    "        try:
+    "            # Create new plan for remaining goals
+    "            remaining_goal = f\"Complete remaining tasks for: {plan.goal}\"
+    "            
+    "            new_plan = self.replanner.create_plan(
+    "                goal=remaining_goal,
+    "                context=plan.context
+    "            )
+    "            
+    "            # Merge new tasks into existing plan
+    "            for task in new_plan.tasks.values():
+    "                if task.id not in plan.tasks:
+    "                    plan.add_task(task)
+    "            
+    "            logger.info(f\"Replanning successful - added {len(new_plan.tasks)} new tasks\")
+    "            return True
+    "        
+    "        except Exception as e:
+    "            logger.error(f\"Replanning failed: {e}\")
+    "            return False
+    "    
+    "    def _print_execution_summary(self, plan: Plan, execution_result: Dict):
+    "        \"\"\"Print final execution summary\"\"\"
+    "        print_section(\"PLAN EXECUTION SUMMARY\", 
+    "                     f\"Plan: {plan.name}\\nStatus: {execution_result['status'].title()}\")
+    "        
+    "        print(f\"📊 Execution Statistics:\")
+    "        print(f\"  • Total tasks: {len(plan.tasks)}\")
+    "        print(f\"  • Completed: {execution_result['tasks_completed']}\")
+    "        print(f\"  • Failed: {execution_result['tasks_failed']}\")
+    "        print(f\"  • Success rate: {(execution_result['tasks_completed'] / len(plan.tasks) * 100):.1f}%\")
+    "        print(f\"  • Duration: {execution_result.get('total_duration', 0):.1f} seconds\")
+    "        print(f\"  • Replanning events: {execution_result['replanning_events']}\")
+    "        print(f\"  • Error recoveries: {execution_result['error_recoveries']}\")
+    "
+    "# Create the adaptive executor
+    "executor = AdaptivePlanExecutor(
+    "    # tool_manager=tool_manager,  # Uncomment if you have tool_manager from Module 3
+    "    # memory_manager=memory_manager,  # Uncomment if you have memory_manager from Module 2
+    "    replanner=htn_planner
+    ")
+    "
+    "print(\"✅ Adaptive Plan Executor created!\")
+    "print(\"⚙️ Features: Monitoring, error recovery, adaptive replanning\")
+    "print(\"🔄 Ready to execute complex plans with resilience\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "planning-demo",
+   "metadata": {},
+   "source": [
+    "## 🚀 Comprehensive Planning Demo
+    "
+    "Let's put everything together with a realistic planning and execution demonstration."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "planning-demo-code",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "async def comprehensive_planning_demo():
+    "    \"\"\"Demonstrate the complete planning and execution system\"\"\"
+    "    
+    "    print_section(\"COMPREHENSIVE PLANNING DEMONSTRATION\", 
+    "                 \"Creating and executing a complex multi-step plan\")
+    "    
+    "    # Define a complex goal
+    "    goal = \"Create a comprehensive quarterly business report with analysis and recommendations\"
+    "    
+    "    # Create context for planning
+    "    planning_context = {
+    "        'quarter': 'Q3 2024',
+    "        'departments': ['Engineering', 'Sales', 'Marketing'],
+    "        'report_format': 'executive_summary',
+    "        'deadline': (datetime.now() + timedelta(days=7)).isoformat(),
+    "        'stakeholders': ['CEO', 'VP Engineering', 'VP Sales']
+    "    },
+    "    
+    "    print(f\"🎯 Goal: {goal}\")
+    "    print(f\"📋 Context: {json.dumps(planning_context, indent=2)}\")
+    "    
+    "    # Step 1: Create plan using HTN planner
+    "    print(\"\\n🌲 Creating hierarchical plan...\")
+    "    plan = htn_planner.create_plan(goal, planning_context)
+    "    
+    "    print(f\"✅ Plan created with {len(plan.tasks)} tasks\")
+    "    
+    "    # Display the plan structure
+    "    print(\"\\n📋 Plan Structure:\")
+    "    for i, task_id in enumerate(plan.task_order, 1):
+    "        task = plan.tasks[task_id]
+    "        deps = f\" (depends on: {', '.join(task.dependencies)})\" if task.dependencies else \"\"
+    "        duration = f\" [{task.estimated_duration}]\" if task.estimated_duration else \"\"
+    "        print(f\"  {i}. {task.name}{duration}{deps}\")
+    "        print(f\"     Action: {task.action} | Priority: {task.priority.name}\")
+    "    
+    "    # Step 2: Validate plan with GOAP
+    "    print(\"\\n🎯 Validating plan feasibility with GOAP...\")
+    "    
+    "    # Set up GOAP world state based on current context
+    "    goap_initial_state = {
+    "        'has_database_access': True,
+    "        'has_analysis_tools': True,
+    "        'has_report_template': True,
+    "        'has_raw_data': False,
+    "        'has_processed_data': False,
+    "        'has_analysis': False,
+    "        'has_draft_report': False,
+    "        'has_final_report': False
+    "    },
+    "    
+    "    goap_goal_state = {'has_final_report': True}
+    "    
+    "    # Register additional GOAP actions for this domain
+    "    goap_planner.register_action(
+    "        name=\"extract_raw_data\",
+    "        preconditions={'has_database_access': True},
+    "        effects={'has_raw_data': True},
+    "        cost=2.0
+    "    )
+    "    
+    "    goap_planner.register_action(
+    "        name=\"process_data\",
+    "        preconditions={'has_raw_data': True, 'has_analysis_tools': True},
+    "        effects={'has_processed_data': True},
+    "        cost=3.0
+    "    )
+    "    
+    "    goap_planner.register_action(
+    "        name=\"create_analysis\",
+    "        preconditions={'has_processed_data': True},
+    "        effects={'has_analysis': True},
+    "        cost=4.0
+    "    )
+    "    
+    "    goap_planner.register_action(
+    "        name=\"draft_report\",
+    "        preconditions={'has_analysis': True, 'has_report_template': True},
+    "        effects={'has_draft_report': True},
+    "        cost=3.0
+    "    )
+    "    
+    "    goap_planner.register_action(
+    "        name=\"finalize_report\",
+    "        preconditions={'has_draft_report': True},
+    "        effects={'has_final_report': True},
+    "        cost=2.0
+    "    )
+    "    
+    "    goap_planner.set_world_state(goap_initial_state)
+    "    goap_action_sequence = goap_planner.plan(goap_goal_state)
+    "    
+    "    if goap_action_sequence:
+    "        print(f\"✅ GOAP validation successful: {len(goap_action_sequence)} actions\")
+    "        print(\"   Action sequence:\", \" → \".join(goap_action_sequence))
+    "    else:
+    "        print(\"❌ GOAP validation failed - plan may not be feasible\")
+    "    
+    "    # Step 3: Execute the plan
+    "    print(\"\\n⚙️ Executing plan with adaptive monitoring...\")
+    "    
+    "    execution_result = await executor.execute_plan(plan)
+    "    
+    "    # Step 4: Analyze execution results
+    "    print(\"\\n📊 Execution Analysis:\")
+    "    
+    "    if execution_result['status'] == 'completed':
+    "        print(\"🎉 Plan executed successfully!\")
+    "        
+    "        # Calculate efficiency metrics
+    "        total_tasks = len(plan.tasks)
+    "        success_rate = execution_result['tasks_completed'] / total_tasks * 100
+    "        
+    "        estimated_duration = sum(
+    "            (task.estimated_duration.total_seconds() if task.estimated_duration else 30)
+    "            for task in plan.tasks.values()
+    "        )
+    "        
+    "        actual_duration = execution_result['total_duration']
+    "        efficiency = (estimated_duration / actual_duration * 100) if actual_duration > 0 else 100
+    "        
+    "        print(f\"  📈 Success rate: {success_rate:.1f}%\")
+    "        print(f\"  ⏱️ Time efficiency: {efficiency:.1f}%\")
+    "        print(f\"  🔄 Adaptations made: {execution_result['replanning_events']}\")
+    "        print(f\"  🛠️ Error recoveries: {execution_result['error_recoveries']}\")
+    "        
+    "    else:
+    "        print(f\"❌ Plan execution {execution_result['status']}\")
+    "        print(\"🔍 Consider revising the plan or addressing blocking issues\")
+    "    
+    "    # Step 5: Extract learnings
+    "    print(\"\\n🧠 Planning System Learnings:\")
+    "    
+    "    planning_insights = [
+    "        \"HTN decomposition provides structured approach to complex goals\",
+    "        \"GOAP validation helps ensure plan feasibility before execution\",
+    "        \"Adaptive execution handles real-world uncertainties and failures\",
+    "        \"Monitoring enables early detection and correction of issues\",
+    "        \"Multi-level planning (strategic → tactical
