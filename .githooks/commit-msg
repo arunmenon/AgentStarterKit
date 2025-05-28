@@ -1,0 +1,7 @@
+#!/bin/bash
+# Reject commits with Claude Code attribution
+if grep -q "Claude Code\|Co-Authored-By: Claude" "$1"; then
+    echo "Error: Commit message contains Claude Code attribution"
+    echo "Please remove Claude references from commit message"
+    exit 1
+fi
