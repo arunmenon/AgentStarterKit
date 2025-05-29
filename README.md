@@ -128,19 +128,19 @@ jupyter lab
 ### Recommended Progression
 
 ```mermaid
-graph LR
-    A[Start] --> B[What is an Agent?]
-    B --> C[Agent Foundations]
-    C --> D[ReAct Pattern]
-    D --> E[ReAct vs ReWOO]
-    E --> F[Reflexion Pattern]
-    F --> G[Advanced Prompting]
-    G --> H[Reasoning Paradigms]
-    H --> I[Evaluation Basics]
-    I --> J[Memory & Learning]
-    J --> K[Tool Integration]
-    K --> L[Planning & Goals]
-    L --> M[Build Your Own Agent!]
+graph TB
+    A[🚀 Start Here] --> B[Chapter 1: Foundations]
+    B --> C[Chapter 2: Memory]
+    C --> D[Chapter 3: Tools]
+    D --> E[Chapter 4: Planning]
+    E --> F[🎯 Build Your Agent!]
+    
+    style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style B fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style C fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style D fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
+    style E fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+    style F fill:#ffebee,stroke:#b71c1c,stroke-width:3px
 ```
 
 ### Prerequisites
