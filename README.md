@@ -37,28 +37,239 @@ This curriculum follows a **progressive complexity model** where each module bui
 
 ## 🚀 Quick Start
 
-### One-Command Setup
+### Prerequisites
+
+Before starting, ensure you have:
+- **Python 3.8+** installed (check with `python3 --version`)
+- **Git** installed (check with `git --version`)
+- **10GB+ free disk space** (for Ollama model)
+- **Internet connection** (for downloading dependencies)
+
+### Step 1: Clone the Repository
 
 ```bash
 # Clone the repository
 git clone https://github.com/arunmenon/AgentStarterKit.git
+
+# Navigate to the project directory
 cd AgentStarterKit
+```
+
+### Step 2: Run the Installer
+
+```bash
+# Make the installer executable (if needed)
+chmod +x install.sh
 
 # Run the zero-friction installer
 ./install.sh
 ```
 
-The installer automatically:
-- ✅ Sets up Python virtual environment
-- ✅ Installs all dependencies
-- ✅ Configures Ollama with Qwen2.5 model
-- ✅ Sets up Jupyter environment
-- ✅ Launches Jupyter with welcome notebook
+#### What the Installer Does:
+
+The installer will guide you through 9 automated steps:
+
+1. **Python Check** - Verifies Python 3.8+ is installed
+2. **System Check** - Checks OS, memory (8GB+ recommended), disk space
+3. **Virtual Environment** - Creates/activates `agent_env` (or reuses existing)
+4. **Dependencies** - Installs all Python packages (jupyter, pandas, etc.)
+5. **Ollama Installation** - Installs Ollama for local LLM (or uses existing)
+6. **Ollama Service** - Starts the Ollama service
+7. **Model Download** - Downloads Qwen2.5 7B model (~4.7GB)
+8. **Jupyter Config** - Sets up Jupyter with custom kernel
+9. **Project Setup** - Creates directories and helper scripts
+
+**Total time**: 5-20 minutes (depending on internet speed)
+
+#### During Installation:
+
+- If you have existing installations, the installer will detect and reuse them
+- You'll be prompted for choices when needed (e.g., "Use existing environment?")
+- Progress is shown with a visual progress bar
+- Any errors will show helpful messages
+
+#### After Installation:
+
+The installer creates these convenience scripts:
+- `./start_jupyter.sh` - Start all services
+- `./stop_services.sh` - Stop all services
+- `welcome.ipynb` - Test notebook to verify setup
+
+### Step 3: Start Learning
+
+After installation completes, you have three options:
+
+#### Option A: Let the installer launch Jupyter (Recommended)
+When prompted "Launch Jupyter Lab now?", press Enter or type 'Y'.
+
+#### Option B: Start Jupyter manually later
+```bash
+# Start all services and launch Jupyter
+./start_jupyter.sh
+```
+
+#### Option C: Manual control
+```bash
+# 1. Activate the virtual environment
+source agent_env/bin/activate
+
+# 2. Start Ollama service (if not running)
+ollama serve &
+
+# 3. Launch Jupyter Lab
+jupyter lab
+```
+
+### Step 4: Access Jupyter
+
+Once started, Jupyter will be available at:
+- **URL**: http://localhost:8888
+- **No password required** (configured for local development)
+- **First notebook**: Open `welcome.ipynb` to test your setup
+
+### Step 5: Stop Services
+
+When you're done working:
+
+```bash
+# Stop all services gracefully
+./stop_services.sh
+```
+
+Or manually:
+```bash
+# Stop Jupyter: Press Ctrl+C in the terminal where it's running
+# Stop Ollama: pkill -f "ollama serve"
+```
+
+---
+
+## 🔧 Troubleshooting
+
+### Common Issues and Solutions
+
+<details>
+<summary><strong>Installer fails with "Python not found"</strong></summary>
+
+- Install Python 3.8+ from https://python.org
+- On macOS: `brew install python3`
+- On Ubuntu/Debian: `sudo apt-get install python3 python3-pip`
+</details>
+
+<details>
+<summary><strong>Installer fails with "Insufficient disk space"</strong></summary>
+
+- You need at least 10GB free space for the Qwen model
+- Clear disk space and run the installer again
+- The installer will resume from where it left off
+</details>
+
+<details>
+<summary><strong>Ollama installation fails</strong></summary>
+
+- On macOS with Homebrew: `brew install ollama`
+- Manual install: Visit https://ollama.ai
+- Then run the installer again - it will detect the installation
+</details>
+
+<details>
+<summary><strong>Model download is slow or fails</strong></summary>
+
+- This is a 4.7GB download - be patient
+- Ensure stable internet connection
+- If it fails, run `./install.sh` again - it will resume
+- Alternative: `ollama pull qwen2.5:7b-instruct-q4_K_M` manually
+</details>
+
+<details>
+<summary><strong>Jupyter won't start or port 8888 is in use</strong></summary>
+
+- Jupyter will automatically try port 8889, 8890, etc.
+- Check the terminal output for the actual URL
+- To use a specific port: `jupyter lab --port=8899`
+</details>
+
+<details>
+<summary><strong>Permission denied when running scripts</strong></summary>
+
+```bash
+# Make scripts executable
+chmod +x install.sh start_jupyter.sh stop_services.sh
+```
+</details>
+
+### Resuming Installation
+
+If the installation is interrupted:
+```bash
+# Simply run the installer again
+./install.sh
+
+# It will ask: "Resume installation? [Y/n]"
+# Press Enter to continue from where it stopped
+```
+
+### Verification
+
+To verify everything is working:
+1. Open http://localhost:8888
+2. Open `welcome.ipynb`
+3. Run all cells - they should complete without errors
+
+### Getting Help
+
+- Check the terminal output for specific error messages
+- Review `ollama.log` for Ollama-related issues
+- Open an issue on GitHub with the error details
+
+---
+
+## 📁 Project Structure After Installation
+
+```
+AgentStarterKit/
+├── agent_env/              # Python virtual environment
+├── agent_workspace/        # Working directory for agents
+├── chapter_1/              # Foundation modules
+├── chapter_2/              # Memory & learning modules  
+├── chapter_3/              # Tool integration modules
+├── chapter_4/              # Planning modules
+├── data/                   # Data directory
+├── logs/                   # Log files
+├── shared_utils/           # Shared utilities
+├── .env                    # API keys (create from template)
+├── install.sh              # Main installer
+├── start_jupyter.sh        # Start services script
+├── stop_services.sh        # Stop services script
+├── welcome.ipynb           # Test notebook
+└── ollama.log             # Ollama service logs
+```
+
+---
+
+## 🎯 Next Steps
+
+1. **Test your setup**: Run all cells in `welcome.ipynb`
+2. **Start learning**: Open `chapter_1/01_what_is_an_agent.ipynb`
+3. **Add API keys**: Edit `.env` file (optional for OpenAI/Anthropic)
+4. **Explore**: Each chapter builds on the previous one
+
+### Daily Workflow
+
+```bash
+# Start your day
+./start_jupyter.sh
+
+# Work through the notebooks...
+
+# End your day
+./stop_services.sh
+```
 
 ### Manual Setup (Alternative)
 
 <details>
-<summary>Click for manual setup instructions</summary>
+<summary>For advanced users who prefer manual setup</summary>
 
 ```bash
 # 1. Create virtual environment
@@ -70,13 +281,21 @@ pip install -r requirements.txt
 
 # 3. Install Ollama (for local LLM)
 curl -fsSL https://ollama.ai/install.sh | sh
-ollama pull qwen2.5:7b-instruct
+ollama serve &
+ollama pull qwen2.5:7b-instruct-q4_K_M
 
 # 4. Set up environment variables
-cp .env.example .env
-# Edit .env with your API keys
+cat > .env << EOF
+OPENAI_API_KEY=your_key_here
+ANTHROPIC_API_KEY=your_key_here
+OLLAMA_BASE_URL=http://localhost:11434
+MODEL_NAME=qwen2.5:7b-instruct-q4_K_M
+EOF
 
-# 5. Launch Jupyter
+# 5. Configure Jupyter kernel
+python -m ipykernel install --user --name agent_env --display-name "AgentStarterKit"
+
+# 6. Launch Jupyter
 jupyter lab
 ```
 </details>
