@@ -220,18 +220,6 @@ By completing this curriculum, you will be able to:
 
 ---
 
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
-
-### Ways to Contribute
-- 🐛 Report bugs and issues
-- 💡 Suggest new features or improvements
-- 📝 Improve documentation
-- 🔧 Submit pull requests
-
----
-
 ## 📖 Additional Resources
 
 ### Recommended Reading
@@ -246,27 +234,7 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 
 ---
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 🙏 Acknowledgments
-
-This curriculum is inspired by:
-- **deeplearning.ai** for pedagogical excellence
-- **Anthropic** for agent architecture patterns
-- **OpenAI** for API and documentation standards
-- The open-source AI community for continuous innovation
-
----
-
 <p align="center">
   <strong>Start your journey in autonomous AI development today!</strong><br>
   <em>Questions? Open an issue or reach out on Discord.</em>
-</p>
-
-<p align="center">
-  Made with ❤️ by the AgentStarterKit Team
 </p>
