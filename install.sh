@@ -17,7 +17,7 @@ BOLD='\033[1m'
 
 # Progress tracking
 CURRENT_STEP=0
-TOTAL_STEPS=8
+TOTAL_STEPS=9
 
 # Installation state file
 STATE_FILE=".install_state"
@@ -125,7 +125,10 @@ check_python() {
     
     # Check version
     PYTHON_VERSION=$(${PYTHON_CMD} -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
-    if (( $(echo "$PYTHON_VERSION < 3.8" | bc -l) )); then
+    PYTHON_MAJOR=$(echo $PYTHON_VERSION | cut -d. -f1)
+    PYTHON_MINOR=$(echo $PYTHON_VERSION | cut -d. -f2)
+    
+    if [ "$PYTHON_MAJOR" -lt 3 ] || ([ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR" -lt 8 ]); then
         print_error "Python 3.8+ required, found $PYTHON_VERSION"
         exit 1
     fi
@@ -484,7 +487,7 @@ download_qwen_model() {
         
         # Test the model
         print_status "Testing model..."
-        if echo "Hello" | ollama run qwen2.5:7b-instruct-q4_K_M --verbose 2>/dev/null | grep -q "Hello"; then
+        if echo '{"model":"qwen2.5:7b-instruct-q4_K_M","prompt":"Hi","stream":false}' | curl -s -X POST http://localhost:11434/api/generate -d @- | grep -q "response"; then
             print_success "Model is working correctly ✓"
             return 0
         else
@@ -843,6 +846,13 @@ resume_from_state() {
 
 # Main installation flow
 main() {
+    # Check if running as root
+    if [ "$EUID" -eq 0 ]; then 
+        echo -e "${RED}Please do not run this installer as root/sudo${NC}"
+        echo -e "${YELLOW}The installer will request sudo only when needed${NC}"
+        exit 1
+    fi
+    
     print_header
     
     # Check for resume
