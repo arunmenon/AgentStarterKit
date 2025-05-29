@@ -2,7 +2,6 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.8+-blue.svg" alt="Python">
-  <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/Status-Active-success.svg" alt="Status">
   <img src="https://img.shields.io/badge/Notebooks-10+-orange.svg" alt="Notebooks">
 </p>
@@ -161,16 +160,11 @@ graph TB
 
 ### Core Technologies
 - **Python 3.8+**: Primary programming language
-- **OpenAI API**: For GPT model access
 - **Ollama**: Local LLM deployment (Qwen2.5)
 - **Jupyter Lab**: Interactive development environment
 
 ### Key Libraries
 ```python
-# AI/ML
-openai>=1.0.0        # OpenAI API client
-anthropic>=0.3.0     # Anthropic API (optional)
-
 # Data & Visualization
 numpy>=1.24.0        # Numerical computing
 pandas>=2.0.0        # Data manipulation
@@ -227,10 +221,6 @@ By completing this curriculum, you will be able to:
 - [ReAct: Synergizing Reasoning and Acting](https://arxiv.org/abs/2210.03629)
 - [Reflexion: Language Agents with Verbal Reinforcement Learning](https://arxiv.org/abs/2303.11366)
 
-### Community
-- 💬 [Discord Server](https://discord.gg/agentstartkit)
-- 🐦 [Twitter Updates](https://twitter.com/agentstartkit)
-- 📧 [Newsletter](https://agentstartkit.substack.com)
 
 ---
 
