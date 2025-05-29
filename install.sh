@@ -26,16 +26,17 @@ STATE_FILE=".install_state"
 print_header() {
     clear
     echo -e "${CYAN}"
-    cat << "EOF"
-    ___                   __  _____ __            __            __ __ _ __ 
-   /   | ____ ____  ____  / /_/ ___// /_____ ______/ /____  _____/ //_/(_) /_
-  / /| |/ __ `/ _ \/ __ \/ __/\__ \/ __/ __ `/ ___/ __/ _ \/ ___/ ,<  / / __/
- / ___ / /_/ /  __/ / / / /_ ___/ / /_/ /_/ / /  / /_/  __/ /  / /| |/ / /_  
-/_/  |_\__, /\___/_/ /_/\__//____/\__/\__,_/_/   \__/\___/_/  /_/ |_/_/\__/  
-      /____/                                                                  
+    cat << 'EOF'
+
+    ╔═╗╔═╗╔═╗╔╗╔╔╦╗╔═╗╦  ╔═╗╦ ╦  ╔═╗╔╦╗╦ ╦╔╦╗╦╔═╗
+    ╠═╣║ ╦║╣ ║║║ ║ ╠╣ ║  ║ ║║║║  ╚═╗ ║ ║ ║ ║║║║ ║
+    ╩ ╩╚═╝╚═╝╝╚╝ ╩ ╚  ╩═╝╚═╝╚╩╝  ╚═╝ ╩ ╚═╝═╩╝╩╚═╝
+
+         🔄 ReAct • ReWOO • Reflexion 🔄
+     ──────────────────────────────────────────
 EOF
     echo -e "${NC}"
-    echo -e "${BOLD}🚀 Zero-Friction Agent Development Environment${NC}"
+    echo -e "${BOLD}🎨 Where AI Agents Come to Life${NC}"
     echo -e "${PURPLE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo
 }
@@ -529,9 +530,9 @@ configure_jupyter() {
     
     # Install Jupyter kernel
     print_status "Installing IPython kernel..."
-    python -m ipykernel install --user --name agent_env --display-name "AgentStarterKit" 2>/dev/null || {
+    python -m ipykernel install --user --name agent_env --display-name "AgentFlow Studio" 2>/dev/null || {
         print_warning "Kernel installation requires sudo, trying with --user flag..."
-        python -m ipykernel install --user --name agent_env --display-name "AgentStarterKit"
+        python -m ipykernel install --user --name agent_env --display-name "AgentFlow Studio"
     }
     
     # Configure Jupyter settings
@@ -587,7 +588,7 @@ EOF
     print_status "Creating quick start script..."
     cat > start_jupyter.sh << 'EOF'
 #!/bin/bash
-echo "🚀 Starting AgentStarterKit Environment..."
+echo "🎨 Starting AgentFlow Studio..."
 
 # Activate virtual environment
 source agent_env/bin/activate
@@ -600,7 +601,7 @@ if ! pgrep -f "ollama serve" > /dev/null; then
 fi
 
 # Launch Jupyter
-echo "Launching Jupyter Lab..."
+echo "Launching AgentFlow Studio..."
 jupyter lab --NotebookApp.token='' --NotebookApp.password=''
 EOF
     chmod +x start_jupyter.sh
@@ -608,7 +609,7 @@ EOF
     # Create stop script
     cat > stop_services.sh << 'EOF'
 #!/bin/bash
-echo "🛑 Stopping AgentStarterKit Services..."
+echo "🛑 Stopping AgentFlow Studio Services..."
 
 # Stop Jupyter
 echo "Stopping Jupyter..."
@@ -632,7 +633,7 @@ EOF
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "# 🎉 Welcome to AgentStarterKit!\n",
+    "# 🎉 Welcome to AgentFlow Studio!\n",
     "\n",
     "Your environment is set up and ready to go. Let's verify everything is working correctly."
    ]
@@ -723,7 +724,7 @@ EOF
  ],
  "metadata": {
   "kernelspec": {
-   "display_name": "AgentStarterKit",
+   "display_name": "AgentFlow Studio",
    "language": "python",
    "name": "agent_env"
   }
