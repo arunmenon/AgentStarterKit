@@ -79,3 +79,4 @@ credentials.json
 
 # Claude specific
 .claude/
+CLAUDE.md
