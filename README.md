@@ -1,20 +1,22 @@
-# 🤖 AgentStarterKit: Building Autonomous AI Systems
+# 🎨 AgentFlow Studio: Where AI Agents Come to Life
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.8+-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Status-Active-success.svg" alt="Status">
-  <img src="https://img.shields.io/badge/Notebooks-10+-orange.svg" alt="Notebooks">
+  <img src="https://img.shields.io/badge/Patterns-12+-ff69b4.svg" alt="Patterns">
+  <img src="https://img.shields.io/badge/Studio-Professional-gold.svg" alt="Studio">
 </p>
 
 <p align="center">
-  <strong>A comprehensive, hands-on curriculum for mastering autonomous AI agent development</strong>
+  <strong>Your professional workspace for crafting intelligent AI agents</strong><br>
+  <em>Master ReAct, ReWOO, Reflexion, and 12+ production patterns</em>
 </p>
 
 ---
 
-## 🎯 Course Overview
+## 🎯 Studio Overview
 
-Welcome to **AgentStarterKit** - a professional training curriculum designed to take you from AI fundamentals to building sophisticated autonomous agents. Inspired by deeplearning.ai's pedagogical approach, this course emphasizes practical implementation with 70% hands-on coding and 30% conceptual learning.
+Welcome to **AgentFlow Studio** - your professional workspace for designing, building, and deploying intelligent AI agents. Inspired by deeplearning.ai's pedagogical excellence, this studio provides hands-on experience with production-ready agent patterns through 70% practical coding and 30% conceptual learning.
 
 ### What You'll Learn
 
@@ -49,10 +51,10 @@ Before starting, ensure you have:
 
 ```bash
 # Clone the repository
-git clone https://github.com/arunmenon/AgentStarterKit.git
+git clone https://github.com/arunmenon/AgentFlow-Studio.git
 
 # Navigate to the project directory
-cd AgentStarterKit
+cd AgentFlow-Studio
 ```
 
 ### Step 2: Run the Installer
@@ -227,21 +229,21 @@ To verify everything is working:
 ## 📁 Project Structure After Installation
 
 ```
-AgentStarterKit/
+AgentFlow-Studio/
 ├── agent_env/              # Python virtual environment
 ├── agent_workspace/        # Working directory for agents
-├── chapter_1/              # Foundation modules
-├── chapter_2/              # Memory & learning modules  
-├── chapter_3/              # Tool integration modules
-├── chapter_4/              # Planning modules
+├── chapter_1/              # Foundation patterns & flows
+├── chapter_2/              # Memory & learning systems  
+├── chapter_3/              # Tool integration patterns
+├── chapter_4/              # Planning & goal flows
 ├── data/                   # Data directory
 ├── logs/                   # Log files
 ├── shared_utils/           # Shared utilities
 ├── .env                    # API keys (create from template)
-├── install.sh              # Main installer
-├── start_jupyter.sh        # Start services script
+├── install.sh              # Studio installer
+├── start_jupyter.sh        # Start studio script
 ├── stop_services.sh        # Stop services script
-├── welcome.ipynb           # Test notebook
+├── welcome.ipynb           # Studio test notebook
 └── ollama.log             # Ollama service logs
 ```
 
@@ -293,7 +295,7 @@ MODEL_NAME=qwen2.5:7b-instruct-q4_K_M
 EOF
 
 # 5. Configure Jupyter kernel
-python -m ipykernel install --user --name agent_env --display-name "AgentStarterKit"
+python -m ipykernel install --user --name agent_env --display-name "AgentFlow Studio"
 
 # 6. Launch Jupyter
 jupyter lab
