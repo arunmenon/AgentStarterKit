@@ -1,0 +1,105 @@
+# SPEAKING NOTES: PLANNING AND GOALS
+
+## INTRODUCTION (Cell 0-1)
+- "Welcome to our final module on Planning and Goals - the capstone of our agent development curriculum."
+- "In previous modules, we built agents with memory, reasoning, and tool integration. Now we'll enable them to tackle complex, multi-step objectives."
+- "Planning represents the highest level of agent capability - decomposing goals into subgoals, identifying dependencies, and orchestrating execution."
+- "The techniques we'll cover transform agents from simple task executors to strategic problem solvers that can manage complex workflows."
+- "By the end of this module, you'll understand hierarchical planning systems and be able to implement agents that handle problems requiring dozens of coordinated steps."
+
+## ENVIRONMENT SETUP (Cell 2-3)
+- "As with previous modules, we're using our Ollama integration with Qwen2.5 7B for consistency."
+- "The PlannerConfig class provides parameters that control planning depth, adaptation frequency, and resource constraints."
+- "Our visualization libraries help us create intuitive representations of complex plans and their execution."
+- "The environment is configured to handle both task decomposition and resource planning within a unified framework."
+- "Let's verify our environment is properly set up before diving into implementation."
+
+## HIERARCHICAL TASK NETWORKS (Cell 4-5)
+- "The foundation of our planning system is the Hierarchical Task Network or HTN."
+- "Unlike linear plans, HTNs represent goals as trees, with high-level objectives decomposed into increasingly specific subtasks."
+- "Our implementation uses the Task class to represent individual nodes in this tree structure."
+- "Each task has a description, status, priority, dependencies, estimated resources, and actual metrics."
+- "The parent-child relationships enable both top-down decomposition and bottom-up progress tracking."
+- "This hierarchical approach allows agents to reason about both strategic goals and tactical implementation details."
+
+## PLAN VISUALIZATION (Cell 6-7)
+- "Visualizing complex plans is essential for understanding and debugging agent behavior."
+- "Our visualization function creates an interactive tree diagram that shows the complete task hierarchy."
+- "Color coding indicates task status - pending tasks in blue, in-progress in orange, completed in green, and failed in red."
+- "The node size represents priority level, helping us quickly identify critical path elements."
+- "Edge thickness shows dependency strength, highlighting which relationships are essential versus optional."
+- "This visualization transforms abstract planning structures into intuitive representations that reveal patterns and bottlenecks."
+
+## GOAL DECOMPOSITION (Cell 8-9)
+- "The heart of planning is goal decomposition - breaking complex objectives into manageable pieces."
+- "Our GoalDecomposer class uses a systematic process: understand the goal, identify major components, break them into subtasks, define dependencies, and allocate resources."
+- "For our 'Plan Company Conference' example, observe how the system divides this into venue selection, speaker coordination, marketing, and logistics."
+- "Each major component is further decomposed - for instance, venue selection includes research, site visits, contract negotiation, and booking confirmation."
+- "The LLM provides the domain knowledge required for this decomposition, while our code handles the structural representation."
+- "This approach combines the best of both worlds - AI's flexibility with software's precision."
+
+## RESOURCE PLANNING (Cell 10-11)
+- "Real-world planning isn't just about tasks - it's about managing finite resources efficiently."
+- "Our ResourcePlanner class handles time, budget, personnel, and materials allocation across the entire plan."
+- "The implementation includes both estimation and tracking - comparing projected versus actual resource usage."
+- "Resource constraints are propagated through the task hierarchy, ensuring feasibility at every level."
+- "When conflicts are detected, the system attempts automatic resolution through priority-based allocation."
+- "This constraint-aware planning prevents the common pitfall of creating theoretically sound but practically impossible plans."
+
+## TEMPORAL PLANNING (Cell 12-13)
+- "Timing and sequencing add another dimension to planning - when tasks should occur and in what order."
+- "Our TemporalPlanner handles dependencies, deadlines, duration estimates, and critical path analysis."
+- "The implementation distinguishes between different dependency types: strict prerequisites, optional enhancements, and parallel opportunities."
+- "Critical path calculation identifies which tasks directly impact the overall timeline - essential for effective resource allocation."
+- "The visualization shows these temporal relationships, with the critical path highlighted in bold."
+- "This approach enables agents to make intelligent decisions about task prioritization based on schedule impact."
+
+## PLAN EXECUTION (Cell 14-15)
+- "Creating a plan is only half the challenge - executing it effectively is equally important."
+- "Our PlanExecutor class manages the execution flow, tracking progress and handling completion callbacks."
+- "The implementation includes intelligent task selection based on priority, dependencies, and resource availability."
+- "Progress tracking provides real-time updates on task status, resource consumption, and timeline adherence."
+- "The execution log captures detailed information about each step, enabling both debugging and performance optimization."
+- "This structured approach ensures reliable execution while maintaining flexibility for dynamic adjustments."
+
+## ADAPTIVE REPLANNING (Cell 16-17)
+- "No plan survives contact with reality - adaptation is essential for practical planning systems."
+- "Our AdaptivePlanner implements the monitor-analyze-replan cycle that enables continuous adjustment."
+- "The implementation detects three trigger conditions: significant deviation from estimates, external changes, and critical task failures."
+- "When triggered, the system performs targeted replanning rather than starting from scratch - preserving as much of the original plan as possible."
+- "The replanning process considers both current progress and updated constraints, ensuring practical continuity."
+- "This approach balances stability with adaptability - essential for real-world applications with changing conditions."
+
+## COMPLETE PLANNING AGENT (Cell 18-19)
+- "Now let's integrate all these components into a complete planning agent system."
+- "The PlanningAgent class combines goal decomposition, resource allocation, temporal planning, execution, and adaptation."
+- "Its plan_and_execute method demonstrates the end-to-end workflow from initial goal to final results."
+- "The implementation includes comprehensive logging and visualization at each stage of the process."
+- "This integration demonstrates how the different planning components work together to create a cohesive system."
+- "Let's test our agent with a complex marketing campaign planning task to see the complete workflow in action."
+
+## MARKETING CAMPAIGN EXAMPLE (Cell 20-21)
+- "Our test case involves planning a comprehensive product launch campaign - a realistic multi-stage project."
+- "The initial plan decomposition identifies market research, creative development, channel strategy, and performance tracking components."
+- "Resource allocation distributes a $50,000 budget across these components based on strategic priorities."
+- "Temporal planning establishes a critical path through research, messaging development, creative production, and channel activation."
+- "Execution simulation shows the agent adapting to unexpected challenges - like delayed creative approvals and budget constraints."
+- "The final evaluation demonstrates how the agent measures success against the original objectives."
+- "This example shows how our planning system handles realistic complexity with both structure and flexibility."
+
+## INTEGRATION WITH PREVIOUS MODULES (Cell 22-23)
+- "Our planning system builds on and integrates with all previous modules in the curriculum."
+- "Memory integration enables the agent to draw on past project experiences for more accurate estimation and risk assessment."
+- "Tool integration allows the agent to gather real-time data, update plans based on external systems, and trigger actions in other platforms."
+- "The ReAct pattern provides the foundation for the monitor-analyze-replan cycle that enables adaptation."
+- "This integration creates a complete agent system that combines reasoning, memory, tool use, and planning into a cohesive whole."
+- "The result is greater than the sum of its parts - a system capable of handling complex real-world workflows from start to finish."
+
+## CONCLUSION AND NEXT STEPS (Cell 24)
+- "We've now completed our journey from agent foundations to sophisticated planning systems."
+- "You've built a comprehensive agent architecture that includes reasoning patterns, memory systems, tool integration, and hierarchical planning."
+- "These capabilities enable agents to tackle truly complex tasks that require coordination across multiple domains and time horizons."
+- "While we've made remarkable progress, exciting opportunities remain - from collaborative multi-agent systems to human-AI planning partnerships."
+- "The core principles we've covered - hierarchical decomposition, resource awareness, temporal reasoning, and adaptive execution - apply across all planning domains."
+- "I encourage you to apply these techniques to your own unique challenges, extending and adapting the framework to your specific requirements."
+- "Thank you for joining me on this journey through agent development - from simple foundations to sophisticated planning systems."
