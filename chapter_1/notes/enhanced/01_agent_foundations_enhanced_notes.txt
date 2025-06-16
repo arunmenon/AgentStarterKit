@@ -166,19 +166,25 @@
 
 ## MULTI-STEP TASK (Cell 13-14)
 ### Conceptual Understanding
-- "For the research task, watch how it searches for information and attempts to store it in memory, learning from each observation."
-- "Notice that our agent isn't perfect - it struggles with the memory tool's syntax, demonstrating the importance of error recovery mechanisms."
-- "This is a realistic demonstration of both the capabilities and limitations of current agent systems."
+- "Now let's look at our second demo - a more complex research task that requires multiple steps."
+- "Watch the agent's behavior as it interacts with different tools to accomplish the goal of researching AI agents."
+- "This demonstration will show both the strengths of the ReAct pattern and potential areas for improvement."
+- "Agent behavior can vary between runs based on the LLM's responses and the goal assessment logic."
 
 ### Implementation Details
-- "This second demonstration tackles a more complex task requiring multiple steps: research and storage."
-- "The agent needs to search for information and then store findings in memory - requiring tool chaining."
-- "Notice how it correctly starts by searching for AI agents and gets relevant information."
-- "The agent then attempts to use the memory tool but struggles with the correct syntax format."
-- "Despite multiple attempts, it keeps hitting errors with the memory tool format - a common issue in agent development."
-- "This demonstrates a realistic limitation: agents often struggle with precise syntax requirements across multiple attempts."
-- "The execution reaches the maximum iteration limit without fully succeeding - showing the importance of robust error recovery."
-- "This failure case is instructive, highlighting areas for improvement in tool design and agent recovery mechanisms."
+- "This second demonstration uses the task 'Research what AI agents are and store the key findings in memory'."
+- "Watch how the agent interprets this goal and formulates a strategy to accomplish it."
+- "The agent typically starts by using the search tool to find information about AI agents."
+- "Depending on the specific run, the agent might attempt different approaches to satisfy the goal."
+- "You may observe different behaviors in your execution - the agent might:"
+- "1. Complete the full cycle: searching for information and then using the memory tool to store findings"
+- "2. Search for information but struggle with the memory tool's syntax requirements"
+- "3. Consider the task complete after gathering information, without using the memory tool"
+- "These variations highlight an important aspect of agent systems - the goal completion detection is itself an LLM-based assessment."
+- "The check_prompt asks the LLM to determine if the goal is achieved based on context and observations."
+- "This can lead to premature completion if the LLM incorrectly assesses that the goal has been met."
+- "This is a realistic challenge in agent development - ensuring accurate goal assessment and completion detection."
+- "Observe the execution carefully to see which path your agent takes, and consider how you might improve the goal assessment."
 
 ## HANDS-ON EXERCISES (Cell 15)
 ### Conceptual Understanding
