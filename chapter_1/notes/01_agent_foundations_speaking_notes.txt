@@ -1,0 +1,69 @@
+# SPEAKING NOTES: AGENT FOUNDATIONS
+
+## ENVIRONMENT SETUP (Cell 1-2)
+- "Today we're diving into implementation. We'll be using Qwen2.5 7B Instruct locally via Ollama."
+- "Why this specific model? It offers the perfect balance - native function calling capabilities with 92% accuracy, reasonable performance at 15-20 tokens per second, and works well on systems with 16GB RAM."
+- "Local LLMs give us privacy, complete control over the inference stack, and a deeper understanding of how agent integration works."
+- "Let's verify our environment is properly configured and the model is accessible."
+
+## MODULE OVERVIEW (Cell 3)
+- "In this session, we're building a complete AI agent from scratch using first principles - no frameworks, no black boxes."
+- "Our agent will have five core capabilities: calculation, search, memory, planning, and adaptation."
+- "We're taking this 'from scratch' approach for a reason - it helps you understand each component deeply, debug effectively, customize freely, and scale with confidence."
+- "Let's get started with the fundamentals."
+
+## AGENTIC SYSTEMS EXPLAINED (Cell 4)
+- "As we discussed in our conceptual introduction, not all AI systems are agents - there's a spectrum from reactive to agentic."
+- "Five key properties differentiate truly agentic systems: autonomy, goal-orientation, persistence, reactivity, and proactivity."
+- "The core of every agent is this fundamental loop: Sense → Think → Act → Learn → repeat."
+- "Now let's translate these concepts into actual code architecture."
+
+## CORE ARCHITECTURE (Cell 5)
+- "Let's define our core architecture using four fundamental building blocks:"
+- "First, we need a state machine to track what our agent is doing at any moment - idle, thinking, acting, observing, completed, or error."
+- "Second, we need a data structure to represent actions - what tool to use, what input to provide, and why this action was chosen."
+- "Third, we need configuration parameters to tune behavior - model selection, iteration limits, verbosity, and timeout controls."
+- "Finally, we need a context structure - the agent's working memory that maintains the goal, conversation history, action history, observations, and planning state."
+- "Notice how explicit these data structures are - every component of the agent's state is clearly defined."
+
+## LLM INTEGRATION (Cell 6-7)
+- "The LLM serves as our agent's 'brain' - handling reasoning, decision-making, interpretation, and planning."
+- "Our OllamaLLM class creates a clean interface to the model, with methods for both free-form and structured outputs."
+- "Note the difference between agent prompts and chatbot prompts - we need clear role definition, structured output formats, tool descriptions, and reasoning instructions."
+- "Let's test our integration with both standard and structured JSON outputs to ensure our agent's brain is working properly."
+
+## TOOL BUILDING (Cell 8-9)
+- "Tools extend our agent's capabilities beyond text generation - they're the agent's interface to the outside world."
+- "Our design follows four principles: single responsibility, clear interfaces, robust error handling, and self-description."
+- "We've implemented three foundational tools: a search tool for information retrieval, a calculator for mathematical operations, and a memory tool for storing and retrieving information."
+- "Each tool follows the same pattern - validate input, perform the core function, handle errors gracefully, and return meaningful results."
+- "Let's test each tool to ensure they're working correctly before we integrate them into our agent."
+
+## THE REACT PATTERN (Cell 10-11)
+- "Now for the heart of our agent - the ReAct pattern that drives its behavior."
+- "ReAct - Reasoning plus Acting - interleaves thinking, acting, and observation in a continuous loop."
+- "This is fundamentally different from traditional approaches that separate thinking and acting. ReAct creates a self-correcting system."
+- "Our implementation follows a clear structure: Think (determine what to do), Act (execute the chosen tool), Observe (process results), and repeat until the goal is achieved."
+- "The agent class manages the entire lifecycle, from initialization and tool registration to the main execution loop and state transitions."
+- "Note the critical importance of proper prompt engineering - we need to explicitly instruct the model to follow the ReAct pattern with specific formatting requirements."
+
+## AGENT DEMONSTRATION (Cell 12-14)
+- "Let's see our agent in action with two tasks: a simple calculation and a more complex research task."
+- "Observe how the agent works through the calculation - first attempting with variables, then correcting with actual numbers after observing the error."
+- "For the research task, watch how it searches for information and attempts to store it in memory, learning from each observation."
+- "Notice that our agent isn't perfect - it struggles with the memory tool's syntax, demonstrating the importance of error recovery mechanisms."
+- "This is a realistic demonstration of both the capabilities and limitations of current agent systems."
+
+## HANDS-ON EXERCISES (Cell 15-16)
+- "Now it's your turn to enhance the agent with your own extensions."
+- "Exercise 1 challenges you to build a custom tool - in this case, a weather tool that returns mock data for different cities."
+- "For Exercise 2, think about how you might improve the agent's goal detection, error recovery, tool chaining, or context management."
+- "Exercise 3 is a debugging challenge with an intentionally broken agent implementation."
+- "These exercises reinforce the concepts and help you develop practical agent-building skills."
+
+## SUMMARY AND NEXT STEPS (Cell 17)
+- "To summarize what we've covered: the core components of agent architecture, LLM integration, tool design, the ReAct pattern, and state management."
+- "Remember the key formula: Agents = Autonomy + Goals + Tools + State."
+- "This is just the beginning of your agent-building journey. In subsequent modules, we'll explore memory systems, advanced tool integration, and hierarchical planning."
+- "Before moving on, challenge yourself to build more complex agents - perhaps one that plays 20 questions, interacts with files, or implements conversation memory."
+- "You've now built a functional AI agent from scratch, understanding every component of its architecture. Congratulations!"

@@ -1,0 +1,70 @@
+# SPEAKING NOTES: WHAT IS AN AI AGENT?
+
+## OPENING (Cell 1)
+- "Welcome to our foundational module on AI agents. In the next 15 minutes, we'll demystify what truly makes an AI system 'agentic'."
+- "By the end, you'll understand the key properties that differentiate agents from traditional AI systems, trace their rapid evolution, and design your own agent architecture."
+- "The best part? No prior experience required - we're building from first principles."
+
+## THE AI SPECTRUM (Cell 2)
+- "AI systems exist on a spectrum from reactive to agentic - it's not binary but a continuum of capabilities."
+- "At the reactive end, we have chatbots that simply match patterns and respond. At the agentic end, we have autonomous systems making independent decisions."
+- "Consider systems you're familiar with: GitHub Copilot, ChatGPT, Siri - they occupy different positions on this spectrum based on their autonomy and capabilities."
+- "The key question isn't 'Is this an agent?' but rather 'How agentic is this system?'"
+
+## SPECTRUM VISUALIZATION (Cell 3)
+- "This visualization maps the progression from basic pattern-matching to coordinated autonomy."
+- "Notice how each step adds capability: Rule-based chatbots merely match patterns, while ChatGPT understands context but still requires explicit direction."
+- "GitHub Copilot begins to show proactivity by suggesting completions, while AutoGPT demonstrates goal-orientation by working toward objectives."
+- "The final stage - multi-agent systems - introduces coordination between multiple autonomous components."
+
+## THE 5 KEY PROPERTIES (Cell 4)
+- "Five essential properties transform an AI system into a true agent. I call these the PAGR+ framework:"
+- "Autonomy - the ability to make decisions without human intervention. Think of AutoGPT deciding which API to call next."
+- "Goal-orientation - working toward specific objectives and decomposing complex goals into actionable steps."
+- "Persistence - maintaining state across interactions, remembering context and progress over time."
+- "Reactivity - responding dynamically to environmental changes and adapting plans based on feedback."
+- "Proactivity - taking initiative to achieve goals, anticipating needs before they're explicitly stated."
+
+## PROPERTY VISUALIZATION (Cell 5)
+- "These radar charts visualize the 'agentic profile' of different systems. Notice the dramatic difference."
+- "AutoGPT shows high scores across all five properties, especially goal-orientation and autonomy."
+- "ChatGPT, while powerful, scores much lower - particularly in persistence and goal-orientation."
+- "This quantitative approach helps us objectively measure and compare agent capabilities."
+
+## THE AGENT CONTROL LOOP (Cell 6)
+- "Every agent, regardless of complexity, follows this fundamental loop: Sense, Think, Act, Learn."
+- "Sense: The agent perceives its environment and gathers information."
+- "Think: It processes this information, reasons about goals, and plans actions."
+- "Act: The agent executes decisions, using tools or APIs to modify its environment."
+- "Learn: Finally, it updates its knowledge and improves strategies based on outcomes."
+- "This cycle repeats continuously, allowing the agent to progressively improve its performance."
+
+## EVOLUTION TIMELINE (Cell 7-8)
+- "The evolution of agent architectures has been remarkably rapid, occurring in three distinct phases."
+- "2023 was the Foundation Year - when AutoGPT launched as the first viral autonomous agent, followed by BabyAGI, Voyager, and Google's Concordia."
+- "2024 became the Pattern Year - when architectures like ReAct, ReWOO, and Reflexion standardized agent behavior patterns."
+- "2025 is the Production Year - marked by OpenAI's o3 achieving 87.5% on ARC-AGI, followed by agent operating systems and advanced memory frameworks."
+- "We've witnessed exponential growth - from zero to over 230,000 organizations building agents in just two years."
+
+## AGENT DESIGN EXERCISE (Cell 9-10)
+- "Agent design begins with five fundamental questions:"
+- "What is your agent's goal? This defines its purpose and scope."
+- "What tools does it need to accomplish this goal? These are its capabilities."
+- "How will it maintain state? This determines what information persists between interactions."
+- "What triggers its actions? These are the conditions that cause the agent to respond."
+- "How will it improve over time? This defines the learning mechanism."
+- "Our example ResearchBot demonstrates this framework in practice, with clear goals, tools, state management, triggers, and learning mechanisms."
+
+## REALITY CHECK (Cell 11)
+- "Let's ground our excitement with some reality: current agents have significant limitations."
+- "While adoption is rapid, today's agents can only successfully complete about 24% of complex workplace tasks."
+- "Even GPT-4 succeeds less than 50% of the time on benchmark tasks, far below human performance."
+- "But progress is accelerating - by 2026, we expect 82% of organizations to be using agents for tasks like email, coding, and data analysis."
+- "Our collective goal: move from 24% to 80%+ task completion in the next generation."
+
+## CLOSING (Cell 12)
+- "To summarize: Agents differ from chatbots through five key properties - autonomy, goal-orientation, persistence, reactivity, and proactivity."
+- "All agents follow the Sense→Think→Act→Learn control loop, regardless of their complexity."
+- "We're witnessing exponential evolution: from foundation (2023) to patterns (2024) to production (2025)."
+- "In our next session, we'll move from theory to practice by building a complete ReAct agent from scratch."
+- "Thank you for your attention. Questions?"

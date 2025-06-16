@@ -1,0 +1,40 @@
+# SPEAKING NOTES: MEMORY AND LEARNING
+
+## INTRODUCTION (Cell 0-1)
+- "Welcome to Module 2, where we'll transform our agents from stateless responders to systems that remember and learn from experience."
+- "Memory is the foundation of intelligence - without it, agents must rediscover the world with each interaction."
+- "In this module, we'll implement a multi-tiered memory architecture that mimics human memory systems."
+- "You'll learn how to build agents that improve over time through experience, tracking their own performance."
+- "This represents a fundamental shift from reactive to truly adaptive agent behavior."
+
+## MEMORY TYPES (Cell 2-3)
+- "Let's start with the four distinct types of memory that sophisticated agents need."
+- "Working Memory holds the immediate context - what's happening right now in the current interaction."
+- "Episodic Memory stores experiences - specific events, conversations, and outcomes from the past."
+- "Semantic Memory contains facts and knowledge - the things the agent has learned about the world."
+- "Procedural Memory encompasses skills and patterns - how to accomplish specific tasks effectively."
+- "Our implementation uses a flexible memory item structure with importance scoring, access tracking, and timestamp information."
+- "The MemoryManager class provides the framework for storing and retrieving these different memory types."
+
+## LEARNING AGENT (Cell 4-5)
+- "Building on our memory foundation, we now implement a learning agent that improves through experience."
+- "Notice how the agent maintains success and failure counts, enabling it to track its own performance."
+- "The execute_task method demonstrates how agents can attempt tasks, record outcomes, and strengthen relevant memories."
+- "We're using a simulated 70% success rate, but in production systems, this would reflect actual task outcomes."
+- "Each successful or failed attempt becomes a memory, allowing the agent to learn which approaches work."
+- "The get_performance_stats method provides transparent metrics on the agent's effectiveness over time."
+
+## TESTING LEARNING (Cell 6-7)
+- "Let's test our learning agent with a series of tasks to observe how memory accumulates."
+- "We're executing five sequential tasks related to data analysis, report generation, and presentation."
+- "Notice how the agent builds episodic memories for each task, storing them with different importance levels."
+- "The performance statistics show a running success rate, demonstrating the agent's ability to track its own effectiveness."
+- "This simulation perfectly executed all tasks, but in real applications, the success rate would vary, creating learning opportunities."
+- "By the end, we've accumulated five memories in both episodic and working memory, forming the basis for future learning."
+
+## MODULE SUMMARY (Cell 8)
+- "To recap what we've accomplished: we've built a complete multi-type memory system that enables agents to remember and learn."
+- "Our implementation includes context-aware retrieval, allowing agents to find relevant past experiences based on current tasks."
+- "We've created performance tracking mechanisms that provide objective measures of agent improvement over time."
+- "This foundation transforms our agents from stateless responders to systems with continuity of experience - a critical step toward true intelligence."
+- "In our next module, we'll expand the agent's capabilities further with tool integration and environment interaction, enabling it to affect the world beyond conversation."
