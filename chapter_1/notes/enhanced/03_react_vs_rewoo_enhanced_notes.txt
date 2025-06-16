@@ -54,6 +54,19 @@
 - "The implementation limits iterations to prevent infinite loops and returns both the final answer and usage metrics."
 - "This represents our baseline for comparison - the standard approach used in most agent systems today."
 
+### Detailed Implementation Walkthrough
+- "Looking more closely at the ReActAgent implementation, we can see exactly how token consumption occurs in the ReAct pattern:"
+- "The class maintains a tools dictionary and metrics tracker to measure every interaction with the LLM."
+- "In the parse_action method, we use regex patterns to extract structured actions from the LLM's free-form responses."
+- "The key pattern search is for 'ACTION:' followed by a tool name and input, with multiple regex variations to handle different formatting styles."
+- "The run method shows the complete ReAct loop implementation:"
+- "It initializes a context string that grows with each iteration, starting with the task description and available tools."
+- "Each iteration sends the entire context to the LLM via the generate method, with the context size increasing every time."
+- "When the LLM responds, we parse its output into a structured action, execute the appropriate tool, and add both the action and observation to the context."
+- "This is where the token consumption increases quadratically - each step adds both the new action and observation to an ever-growing context window."
+- "We can see why this becomes expensive: if a task requires N tool calls, the ReAct pattern requires approximately 2N+1 LLM calls, each with a larger context than the last."
+- "The metrics tracking gives us precise measurements of this increasing consumption, providing a baseline for comparison with alternative patterns."
+
 ## REWOO PATTERN INTRODUCTION (Cell 7-8)
 ### Conceptual Understanding
 - "ReWOO - 'Reasoning Without Observation' - takes a fundamentally different approach."
@@ -73,6 +86,21 @@
 - "The solve method takes the original task, the plan, and all results to generate a final answer."
 - "This implementation requires exactly 2 LLM calls regardless of how many tools or steps are needed."
 - "The clean separation of planning from execution is the key architectural distinction from ReAct."
+
+### Detailed Implementation Walkthrough
+- "The ReWOO implementation demonstrates a fundamentally different architecture for agent systems:"
+- "First, the ReWOOPlan dataclass formalizes the concept of a complete execution plan with steps that include variable references."
+- "Looking at the ReWOOAgent class, we can see the clean separation of concerns into three distinct phases:"
+- "The plan method handles the first LLM call, providing a system prompt that specifically instructs the model to use variable substitution with the #Ex format."
+- "In the parse_plan method, we extract structured steps using regex pattern r'(#E\d+)\s*=\s*(\w+)\s*\[([^\]]+)\]', which captures variable assignments to tool executions."
+- "Each step becomes a dictionary with three keys: var (like #E1), tool (which tool to use), and input (what to pass to the tool)."
+- "The execute_plan method shows how variable substitution works in practice:"
+- "It processes steps sequentially, resolving references to previous results by replacing variable names with actual values."
+- "The results dictionary stores all execution outputs, keyed by variable name for easy reference."
+- "Finally, the solve method makes the second and final LLM call, presenting the original task, the complete plan, and all execution results together."
+- "The run method ties everything together in just three steps: plan, execute, solve - requiring exactly two LLM calls regardless of task complexity."
+- "This architectural difference explains the efficiency gain: instead of growing context with each action and observation, ReWOO makes two fixed-size LLM calls."
+- "The first call (planning) has no observations at all, and the second call (solving) includes all observations at once in a structured format."
 
 ## SIDE-BY-SIDE COMPARISON (Cell 9-10)
 ### Conceptual Understanding
@@ -117,6 +145,18 @@
 - "We calculate potential speedup by comparing sequential and parallel execution times."
 - "This demonstrates how architectural choices can dramatically impact performance beyond just token efficiency."
 
+### Detailed Implementation Walkthrough
+- "The ParallelReWOOAgent demonstrates how ReWOO's architecture enables parallel execution optimizations:"
+- "The identify_parallel_stages method is the key innovation here - it analyzes the plan to group steps into execution stages that can run in parallel."
+- "It works by tracking dependencies between steps - if a step's input references a variable from a previous step, it creates a dependency relationship."
+- "The algorithm builds a dependency graph by examining each step's input for variable references:"
+- "For each step, it checks if the input contains any variables from previous steps."
+- "If there's a dependency, the step is added to a new stage; otherwise, it's added to the current stage with other independent operations."
+- "The result is a list of stages, where each stage contains steps that can execute simultaneously without dependencies."
+- "The generate_parallel_plan method further enhances this by explicitly instructing the LLM to create plans optimized for parallelization."
+- "It uses a specialized system prompt that explains the concept of parallel execution and provides examples of parallelizable plans."
+- "This implementation showcases how architectural patterns like ReWOO can enable optimizations beyond just token reduction - in this case, potentially dramatic reductions in execution time through parallelization."
+
 ## PLAN OPTIMIZATION (Cell 14-15)
 ### Conceptual Understanding
 - "ReWOO offers another efficiency opportunity: optimizing plans before execution."
@@ -133,6 +173,20 @@
 - "The implementation demonstrates finding and removing a duplicate search operation."
 - "This optimization process shows how LLMs can be used not just for execution but for meta-reasoning about efficiency."
 - "The comparison between original and optimized plans provides quantitative evidence of token and step savings."
+
+### Detailed Implementation Walkthrough
+- "The OptimizingReWOOAgent showcases an advanced use of LLMs for meta-reasoning about their own plans:"
+- "The analyze_plan_for_optimization method is particularly interesting - it creates a prompting structure that asks the LLM to critique its own planning output."
+- "This system prompt instructs the LLM to identify three specific types of inefficiencies:"
+- "1. Redundant operations - the same tool with the same input used multiple times"
+- "2. Inefficient sequences - operations that could be simplified or combined"
+- "3. Missed parallelization opportunities - operations that could run simultaneously"
+- "The LLM returns a structured JSON response with these insights, which the agent can then use to optimize the execution plan."
+- "The optimize_plan method shows how these insights are applied:"
+- "It creates a dictionary seen_operations that maps operation signatures (tool + input) to variable names."
+- "When processing each step, it checks if the operation has been seen before - if so, it can reuse the previous result rather than executing the same operation again."
+- "For steps that are redundant, it creates a variable mapping that will be used to update subsequent references."
+- "This implementation demonstrates a powerful capability: using the LLM's own reasoning abilities to optimize plans before execution, potentially eliminating entire steps and further reducing both token usage and execution time."
 
 ## LIMITATIONS AND TRADEOFFS (Cell 16)
 ### Conceptual Understanding
@@ -158,6 +212,18 @@
 - "This hybrid approach demonstrates architectural flexibility - combining patterns to leverage their respective strengths."
 - "The implementation shows how to detect errors and make intelligent pattern selection decisions."
 
+### Detailed Implementation Walkthrough
+- "The HybridAgent implementation shows how to combine the best aspects of both patterns in a single system:"
+- "The class initializes both a ReWOO agent and a ReAct agent, making both patterns available on demand."
+- "The run method starts with the more efficient ReWOO approach, generating a complete plan first."
+- "The key innovation is in the error detection and recovery mechanism:"
+- "During plan execution, it specifically looks for failures in each step, simulated in our example by raising an exception on step #E2."
+- "When an error is detected, the agent doesn't simply fail - it switches to the more adaptable ReAct pattern."
+- "The react_fallback method handles this transition seamlessly, taking the remaining task and partial results as context."
+- "This creates a graceful degradation path: start with the efficient approach, but fall back to the more flexible one when needed."
+- "The hybrid approach addresses ReWOO's primary weakness (inability to adapt to unexpected situations) while still leveraging its efficiency benefits in the common case."
+- "This pattern is particularly valuable for production systems where both efficiency and robustness are critical requirements."
+
 ## PLAN CACHING (Cell 19-20)
 ### Conceptual Understanding
 - "Another optimization technique is plan caching - storing and reusing plans for similar tasks."
@@ -175,6 +241,20 @@
 - "This demonstrates significant savings - eliminating the expensive planning phase for similar tasks."
 - "The implementation shows a reduction from 2 LLM calls to just 1 for the second execution."
 - "This pattern is particularly valuable for applications with repetitive or templated tasks."
+
+### Detailed Implementation Walkthrough
+- "The CachedReWOOAgent demonstrates an important optimization technique for production agent systems:"
+- "The plan_cache dictionary is used to store previously generated plans indexed by task signatures."
+- "The get_task_signature method implements a clever heuristic for determining task similarity:"
+- "Instead of doing exact string matching (which would rarely find matches), it analyzes the task for key patterns that indicate its general type."
+- "It creates a patterns dictionary that maps task categories like 'research', 'analyze', and 'summarize' to boolean flags indicating their presence in the task text."
+- "The signature is then created by joining the keys of patterns that evaluated to true, creating a compact representation of the task type."
+- "For example, a task containing both 'research' and 'summarize' would get the signature 'research_summarize'."
+- "The run method leverages this signature system by checking if we've seen a similar task before:"
+- "If the signature exists in the cache, we can skip the expensive planning phase entirely and reuse the existing plan."
+- "This optimization is powerful because the planning phase is typically the most token-intensive part of the ReWOO pattern."
+- "The implementation demonstrates a reduction from 2 LLM calls to just 1 for the second similar task - a 50% reduction in API calls."
+- "This approach can be extended with more sophisticated similarity measures for greater cache hit rates in production systems."
 
 ## PERFORMANCE SUMMARY (Cell 21-22)
 ### Conceptual Understanding
