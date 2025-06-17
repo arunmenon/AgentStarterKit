@@ -78,7 +78,6 @@
 - "The _extract_steps method parses the response to identify distinct reasoning components."
 - "The _track_metrics method captures performance data for comparison."
 - "Our discount calculation example demonstrates the basic CoT approach, breaking down the calculation into clear sequential steps."
-- "The implementation includes visualization of the linear reasoning process."
 - "This serves as our baseline for both token efficiency and reasoning quality."
 
 ## TREE-OF-THOUGHT (Cell 11-14)
@@ -245,11 +244,8 @@
 - "- llm_calls: number of API interactions"
 - "- solution_quality: correctness and completeness score"
 - "- confidence: estimated reliability of the answer"
-- "The results are visualized in multiple formats:"
-- "1. Token usage comparison bar chart"
-- "2. Solution quality radar chart"
-- "3. Execution time comparison"
-- "4. Reasoning structure visualization"
+- "The results are presented in a tabular format showing time, tokens, cost, and solution quality."
+- "Additional metrics like token usage ratios are calculated to show relative efficiency."
 - "This side-by-side comparison provides quantitative evidence of the trade-offs between approaches."
 - "Each reasoner correctly arrives at 3,200 bacteria, but with dramatically different efficiency and methodology."
 
