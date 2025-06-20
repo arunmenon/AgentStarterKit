@@ -1,5 +1,14 @@
 # SPEAKING NOTES: PLANNING AND GOALS
 
+## PLANNING IMPORTANCE FOR AGENTIC SYSTEMS
+- "Planning is the cornerstone of truly agentic AI systems. Without it, agents can only react to immediate stimuli or follow pre-defined scripts."
+- "With planning capabilities, agents can set and pursue long-term goals, moving beyond simple reactivity to deliberate action sequences."
+- "Planning allows agents to allocate limited resources optimally, handling time, computational resources, and domain-specific constraints."
+- "It enables agents to handle contingencies and failures, adapting when initial approaches don't succeed."
+- "Planning helps agents balance exploration versus exploitation, deciding when to follow known strategies versus trying new approaches."
+- "Perhaps most importantly, planning allows agents to coordinate complex multi-step activities by breaking overwhelming tasks into manageable chunks."
+- "The Hierarchical Task Network approach we'll explore represents one of the most powerful planning paradigms for real-world applications."
+
 ## INTRODUCTION (Cell 0-1)
 - "Welcome to our final module on Planning and Goals - the capstone of our agent development curriculum."
 - "In previous modules, we built agents with memory, reasoning, and tool integration. Now we'll enable them to tackle complex, multi-step objectives."
@@ -21,6 +30,7 @@
 - "Each task has a description, status, priority, dependencies, estimated resources, and actual metrics."
 - "The parent-child relationships enable both top-down decomposition and bottom-up progress tracking."
 - "This hierarchical approach allows agents to reason about both strategic goals and tactical implementation details."
+- "Task types are divided into ABSTRACT (needing further decomposition) and PRIMITIVE (directly executable), creating a clean separation between planning and execution."
 
 ## PLAN VISUALIZATION (Cell 6-7)
 - "Visualizing complex plans is essential for understanding and debugging agent behavior."
