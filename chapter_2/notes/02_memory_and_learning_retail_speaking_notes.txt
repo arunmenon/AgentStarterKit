@@ -14,6 +14,7 @@
 - "Semantic Memory contains essential retail knowledge - product specifications, store layouts, supplier details, and company policies."
 - "Procedural Memory encompasses operational workflows - inventory reordering processes, customer service protocols, price matching procedures, and seasonal strategies."
 - "This specialized mapping transforms abstract memory concepts into practical retail applications."
+- "These four memory types are directly inspired by cognitive science research on human memory systems, adapted for retail operations."
 
 ## ENVIRONMENT SETUP (Cell 2-3)
 - "We're continuing with our Ollama and Qwen2.5 7B model for consistency with previous modules."
@@ -26,11 +27,20 @@
 - "Our retail memory architecture begins with specialized memory types for retail operations."
 - "RetailMemoryItem serves as our base class with retail-specific fields like department, store ID, and business impact metrics."
 - "We've implemented the Ebbinghaus forgetting curve to model memory decay over time - memories become less accessible unless refreshed."
+- "This forgetting curve implementation is directly inspired by Hermann Ebbinghaus's pioneering cognitive science research from the 1880s, which demonstrated how human memory retention declines over time."
+- "In human learning, we typically see a dramatic drop in retention within the first 24 hours - losing 50-70% of new information - followed by a more gradual decline. Our formula mimics this pattern precisely."
+- "The formula uses stability = (1 + importance) * (1 + math.log1p(access_count)) which reflects how important memories and frequently accessed ones are more resistant to decay."
+- "The logarithmic function for access_count is key - it models how the first few repetitions dramatically improve memory retention, while later repetitions have diminishing returns, exactly as observed in human learning."
+- "Retention is calculated using math.exp(-hours_passed / (stability * 24)), creating that characteristic steep initial forgetting followed by slower decay."
+- "Final strength combines retention with importance and applies boosts for recency and frequency, mirroring how humans better remember important, recent, and frequently recalled information."
 - "RetailEpisode captures sales events with revenue impact tracking and product relationships."
 - "ProductKnowledge represents our semantic memory with detailed product attributes and relationship mappings."
 - "RetailProcedure embodies procedural memory with quantitative metrics on success rates, execution times, and cost savings."
 - "CustomerInteraction provides specialized tracking for the most critical retail touchpoint - customer service."
 - "Notice how each memory type includes business metrics that directly connect to retail KPIs."
+- "Importance is initially assigned based on business rules - higher value sales, customer complaints, and critical procedures start with higher importance."
+- "Importance can increase over time through memory access, capped at 1.0."
+- "This implements another cognitive principle - our brains strengthen neural pathways for information we retrieve frequently, making it easier to recall in the future."
 
 ## LLM INTEGRATION (Cell 6-7)
 - "Our LLM integration enhances memory operations in two critical ways."
@@ -38,15 +48,25 @@
 - "Second, extract_query_intent provides deeper understanding of queries, identifying departments, urgency, and query types."
 - "This integration demonstrates how LLMs can enhance traditional information retrieval approaches."
 - "The implementation gracefully falls back to simpler methods when LLM access isn't available."
+- "This hybrid approach mimics how humans combine associative memory (keyword matching) with deeper semantic understanding."
 
 ## WALMART MEMORY MANAGER (Cell 8-9)
 - "The WalmartMemoryManager represents our complete retail memory system with business intelligence capabilities."
+- "It maintains a clear separation between working memory (temporary storage) and long-term memory types (episodic, semantic, procedural)."
+- "All memories start in working memory before potentially being consolidated to appropriate long-term storage."
+- "This consolidation process mirrors how human brains transfer information from working memory to long-term memory during activities like sleep - not all working memories make it to long-term storage."
+- "Consolidation happens based on importance, not strength - memories exceeding the consolidation threshold (default 0.7) are moved to long-term storage."
+- "When working memory nears capacity, the system also consolidates the most important memories to prevent overflow."
+- "This mimics how humans prioritize important information when our working memory is overwhelmed - we focus on the critical details and may forget less important ones."
 - "It implements sophisticated memory retrieval that combines keyword matching, department relevance, LLM-based similarity, and recency effects."
-- "The system includes automatic consolidation of important memories from working memory to long-term storage."
+- "The memory retrieval process first scores memories by relevance to the query, then factors in memory strength for the final ranking."
+- "For production systems, this linear search approach would be replaced with vector embeddings and approximate nearest neighbor search."
 - "Business metrics are tracked throughout - revenue impact, customer satisfaction, and operational effectiveness."
 - "Fast retrieval is enabled through specialized indices for products, seasonal patterns, and departments."
 - "The preloaded Walmart knowledge includes operational procedures for price matching and Black Friday preparation."
 - "These retail-specific methods like remember_sale and remember_customer_interaction demonstrate how memory becomes integrated with business operations."
+- "The system includes automatic relationship learning - discovering which products are frequently bought together."
+- "This association learning mimics how human brains automatically form connections between items experienced together - a fundamental learning mechanism in cognitive science."
 
 ## RETAIL SCENARIOS (Cell 10-11)
 - "Let's see our memory system in action with realistic Black Friday scenarios."
@@ -61,6 +81,8 @@
 - "Each interaction is tracked with satisfaction scores, emotional states, and resolution details."
 - "The system automatically updates the overall customer satisfaction average - a key retail metric."
 - "These memories form the basis for improving service protocols and addressing recurring issues."
+- "Customer interactions are assigned higher initial importance (minimum 0.7) to reflect their business value."
+- "This prioritization mirrors how emotionally charged experiences are better remembered by humans - our brains give higher importance to interactions with emotional content."
 
 ## PRODUCT KNOWLEDGE (Cell 13)
 - "Product knowledge forms the foundation of retail semantic memory."
@@ -68,15 +90,22 @@
 - "The relations field contains critical retail connections - accessories, competitive products, and complementary items."
 - "This knowledge powers cross-selling recommendations and inventory decision-making."
 - "By building these relationship maps, the system learns product affinities that drive store layouts and promotions."
+- "These semantic networks mirror how human semantic memory organizes conceptual knowledge in interconnected webs of related concepts."
 
 ## MEMORY RETRIEVAL (Cell 14)
 - "Now let's test our intelligent memory retrieval with realistic retail queries."
+- "The retrieval process combines relevance scoring with memory strength calculation."
+- "Relevance is determined by keyword matching, department matching, and semantic similarity."
+- "Memory strength uses the Ebbinghaus formula, combining importance, retention, and recency/frequency boosts."
 - "For 'How did Black Friday go?' the system retrieves relevant sales data with revenue impact."
 - "The 'Customer complaints in Electronics' query finds relevant customer interactions."
 - "'Samsung TV related products' demonstrates product relationship retrieval."
 - "The 'Price match procedure' query shows procedural memory retrieval with success metrics."
 - "Notice how the system ranks memories by relevance and presents the most pertinent information first."
 - "This intelligence transforms raw data into actionable retail insights."
+- "Each retrieval reinforces the accessed memories, incrementing their access count and updating last_accessed."
+- "This retrieval-based strengthening mirrors how human memory recall actually reinforces the memory - a finding that revolutionized learning science."
+- "In production systems, this would be optimized with vector embeddings and ANN search rather than linear scanning."
 
 ## RETAIL INTELLIGENCE (Cell 15)
 - "Our visualization dashboard transforms memory into actionable business intelligence."
@@ -92,6 +121,8 @@
 - "It tracks its own performance through customer satisfaction metrics and interaction analysis."
 - "The shift performance analysis demonstrates how memory enables operational intelligence - from revenue tracking to procedure effectiveness."
 - "This represents a true learning system that improves its performance based on accumulated experience."
+- "Every customer interaction becomes a new memory, creating a continuous learning loop."
+- "This experience-based improvement mirrors how human expertise develops - through accumulation of episodes, extraction of patterns, and reinforcement of successful approaches."
 
 ## ASSISTANT IN ACTION (Cell 18-19)
 - "Let's see our Walmart Assistant handle a diverse set of customer queries throughout a simulated day."
@@ -99,6 +130,7 @@
 - "Policy questions like 'Do you price match Amazon?' utilize procedural memory with clear steps."
 - "Notice how the assistant builds its own episodic memory of these interactions, learning from each engagement."
 - "This simulation demonstrates a complete learning loop - using memories to respond while simultaneously creating new memories."
+- "With each interaction, the assistant becomes better at handling similar queries in the future."
 
 ## ADVANCED MEMORY TYPES (Cell 20-21)
 - "Let's extend our system with advanced seasonal pattern recognition."
@@ -107,11 +139,18 @@
 - "The inventory recommendations field demonstrates how memory becomes predictive - suggesting stocking levels based on historical performance."
 - "This represents the highest level of agent learning - transforming experiences into forward-looking business strategies."
 - "The student challenge encourages extending this to multi-year comparisons, trend predictions, and weather-sensitive product identification."
+- "This pattern extraction from episodic memories mirrors how human experts develop intuition - by recognizing patterns across many similar experiences."
 
 ## SUMMARY AND KEY TAKEAWAYS (Cell 22)
 - "To summarize what we've built: a complete retail memory architecture with four integrated memory types."
 - "We've implemented LLM-enhanced retrieval that goes beyond simple keyword matching to semantic understanding."
 - "Our system includes advanced features like the Ebbinghaus forgetting curve, automatic memory consolidation, and multi-factor relevance scoring."
+- "The importance vs. strength distinction is crucial - importance determines what to remember (storage), while strength determines what to retrieve (recall)."
+- "This distinction parallels findings in cognitive science about how human memory encoding (what we store) and retrieval (what we can recall) are separate processes with different factors affecting each."
+- "Importance is assigned based on business rules and increases with access, capped at 1.0."
+- "Strength is calculated dynamically using the Ebbinghaus formula, combining importance, stability, and decay over time."
+- "Memory consolidation happens based on importance threshold, not strength."
+- "The current implementation uses linear search for retrieval, but production systems would use vector embeddings and ANN with strength-based filtering."
 - "The business intelligence capabilities transform raw memories into actionable insights on revenue, customer satisfaction, and operational effectiveness."
 - "This system learns continuously from retail operations - discovering product relationships, measuring procedure effectiveness, and optimizing seasonal strategies."
 - "The real-world applications span inventory management, customer service, revenue optimization, and operational excellence."
