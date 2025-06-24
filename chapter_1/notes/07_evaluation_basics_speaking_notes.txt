@@ -1,0 +1,58 @@
+# SPEAKING NOTES: EVALUATION BASICS
+
+## INTRODUCTION
+- "As we conclude our exploration of agent foundations, it's essential to discuss how we measure agent performance."
+- "Benchmarking agents differs fundamentally from benchmarking language models - we're evaluating goal achievement, not text quality."
+- "τ-bench, the leading benchmark framework, provides standardized evaluation across complex tasks."
+- "This module serves as a reality check - while we've explored impressive techniques, current agents complete only 24% of complex workplace tasks successfully."
+
+## EVALUATION DIMENSIONS
+- "Effective agent evaluation requires measuring across multiple dimensions simultaneously."
+- "Task Completion: Did the agent accomplish the goal? This is binary for simple tasks but often involves partial credit for complex ones."
+- "Efficiency: How many tokens, API calls, and time did the agent require? Lower is better for production systems."
+- "Safety: Did the agent refuse harmful requests and avoid unsafe actions? This dimension is critical for deployment."
+- "Autonomy: How much human intervention was required? Truly autonomous agents should minimize human-in-the-loop requirements."
+- "The challenge is balancing these sometimes competing objectives - an agent that optimizes solely for completion may be inefficient or unsafe."
+
+## BENCHMARKING METHODOLOGIES
+- "Standardized evaluation requires consistent methodologies across different agent architectures."
+- "τ-bench uses templated tasks with clear success criteria across domains like information retrieval, reasoning, and tool use."
+- "The evaluation pipeline includes automated checks plus human validation for nuanced success criteria."
+- "A robust benchmark should test both 'ceiling' (maximum capability) and 'floor' (minimum reliability) across diverse scenarios."
+- "For our curriculum, we've developed a simplified testing framework that provides comparable metrics to production benchmarks."
+
+## CURRENT STATE OF AGENT PERFORMANCE
+- "The current reality is sobering - even the best agents complete only 24% of complex workplace tasks successfully."
+- "Performance varies dramatically by domain: 56% success on information retrieval, 31% on reasoning tasks, but only 12% on complex tool use."
+- "Human baseline is 92% across all categories - we have a significant gap to close."
+- "Error analysis shows that 43% of failures stem from reasoning errors, 38% from tool execution failures, and 19% from goal misunderstanding."
+- "This performance gap represents the opportunity space for techniques like Reflexion, ReWOO, and advanced reasoning paradigms."
+
+## PERFORMANCE IMPROVEMENT STRATEGIES
+- "Our curriculum has introduced several techniques that directly address the primary failure modes."
+- "Reflexion reduces reasoning errors through verbal reinforcement learning, achieving a 13.75% improvement on HumanEval."
+- "ReWOO improves efficiency by 64%, enabling more computation per task within the same budget."
+- "Tree-of-Thought achieves 62% improvement on reasoning tasks by exploring multiple solution paths."
+- "The combined effect of these techniques can push completion rates from 24% toward 60-70% on most tasks."
+
+## BENCHMARKING YOUR OWN AGENTS
+- "Implementing proper evaluation for your own agents requires three key components."
+- "First, create a diverse test suite with clear success criteria across relevant domains."
+- "Second, implement automated validation where possible, with human review for edge cases."
+- "Third, track performance trends over time and across technique modifications."
+- "Remember that realistic benchmarks should include 'hostile' tasks designed to probe limitations."
+- "The most valuable insight often comes from detailed error analysis rather than aggregate scores."
+
+## THE PATH FORWARD
+- "The gap between current performance (24%) and human baseline (92%) defines our research and development roadmap."
+- "Each module in our curriculum addresses specific performance bottlenecks: memory systems, tool integration, and planning."
+- "Module 2 focuses on memory systems that reduce context-switching errors and enable learning from past interactions."
+- "Module 3 covers robust tool integration to address the 38% of failures stemming from tool execution problems."
+- "Module 4 explores planning systems that decompose complex goals into manageable subgoals with proper dependency handling."
+
+## CONCLUSION
+- "Effective evaluation provides both a reality check and a roadmap for improvement."
+- "While the 24% completion rate might seem disappointing, it represents remarkable progress in a rapidly evolving field."
+- "Our curriculum provides the techniques needed to systematically improve each aspect of agent performance."
+- "By addressing reasoning errors, tool integration issues, and planning limitations, we can push toward the human baseline."
+- "The most exciting insight is that these improvements compound - each technique we've covered builds on the others to create increasingly capable agent systems."

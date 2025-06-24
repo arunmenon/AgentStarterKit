@@ -1,0 +1,56 @@
+# SPEAKING NOTES: ADVANCED PROMPTING TECHNIQUES
+
+## INTRODUCTION (Cell 0-1)
+- "Welcome to our exploration of advanced prompting techniques - the state-of-the-art approaches from 2024-2025."
+- "In this module, we're focusing on 12 key techniques extracted from a comprehensive review of 58 different prompting strategies."
+- "These aren't just theoretical concepts - we'll implement each one with our Ollama integration to demonstrate their practical application."
+- "The techniques we'll cover span general prompting, agent-specific strategies, prompt optimization, and even multi-modal approaches."
+- "By the end, you'll have a sophisticated toolkit to dramatically improve your agent's performance across diverse tasks."
+
+## ENVIRONMENT SETUP (Cell 2-5)
+- "As with our previous modules, we're using Qwen2.5 7B via Ollama for consistency and reproducibility."
+- "We've defined a PromptCategory enum to classify techniques into basic, reasoning, consistency, optimization, agent-specific, and multimodal categories."
+- "Each technique is represented by a comprehensive data structure capturing its name, category, description, example usage, when it's most effective, and expected improvements."
+- "Our trusted OllamaLLM integration remains consistent, providing both standard and structured outputs."
+- "This consistency is intentional - it demonstrates how powerful these techniques are even with the same underlying model."
+
+## ACTIVE-PROMPT (Cell 6-7)
+- "Let's begin with Active-Prompt - a technique that dynamically adjusts prompts based on real-time feedback from the model."
+- "The implementation analyzes responses for uncertainty and errors using indicator phrases like 'I'm not sure' or 'incorrect'."
+- "When uncertainty is detected, the prompt adapts to encourage step-by-step reasoning and confidence."
+- "When errors are detected, it provides concrete examples to guide the model toward the correct approach."
+- "This adaptive cycle continues until a satisfactory response is achieved or a maximum attempt limit is reached."
+- "The demonstration shows how, even for a simple calculation problem, the adaptive process ensures high-quality outputs."
+- "This technique is particularly valuable for complex reasoning tasks where initial responses may contain errors or uncertainty."
+
+## CHAIN-OF-THOUGHT (Cell 8-9)
+- "Chain-of-Thought or CoT is perhaps the most fundamental advanced prompting technique - the foundation for many others."
+- "The core insight is deceptively simple: explicitly instructing the model to 'think step by step' dramatically improves reasoning."
+- "Our implementation demonstrates both zero-shot CoT, which simply adds this instruction, and few-shot CoT, which provides examples of step-by-step reasoning."
+- "The problem we're testing involves multiple operations - starting with 15 books, giving away 3, buying 7 more, and then receiving twice the current amount."
+- "Notice how both approaches break down the problem into clear sequential steps, but the few-shot version produces more structured reasoning."
+- "Research shows that CoT improves performance on reasoning tasks by 20-40%, making it essential for any complex problem-solving scenario."
+
+## SELF-CONSISTENCY (Cell 10-11)
+- "Self-Consistency takes CoT to the next level by generating multiple reasoning paths and aggregating their results."
+- "The implementation generates several solutions to the same problem using slight variations in prompting and temperature."
+- "It then extracts numerical answers from each path using regex patterns and aggregates them through majority voting."
+- "For our train speed problem, we see different reasoning paths converging on the same answer of 60 mph, but with one outlier."
+- "The confidence score provides a quantitative measure of agreement between different reasoning attempts."
+- "This technique is particularly powerful for mathematical reasoning, where it improves accuracy by 10-15% over standard CoT."
+- "The visualization of answer distribution offers transparency into the decision-making process."
+
+## ADVANCED TECHNIQUES SUMMARY (Cell 12-13)
+- "While we've implemented the core techniques in detail, the principles extend to many other approaches."
+- "All techniques follow the same integration pattern with Ollama, making them easy to incorporate into your existing agent systems."
+- "The key insight is that different techniques excel at different tasks - CoT for reasoning, few-shot for pattern recognition, self-consistency for complex calculations."
+- "The choice of technique should be guided by benchmarking on your specific task types."
+- "Constitutional AI approaches ensure ethical behavior by implementing guardrails in the prompting process."
+- "In our next module, we'll build on these foundations to explore even more sophisticated reasoning paradigms like Tree of Thoughts."
+
+## PRACTICAL APPLICATION
+- "When implementing these techniques in your own agents, start with Chain-of-Thought as your baseline - it's simple yet effective."
+- "For mission-critical applications, Self-Consistency provides the highest accuracy but at the cost of multiple model calls."
+- "Active-Prompt offers the best balance between performance and efficiency for interactive applications."
+- "Remember that prompt engineering is both art and science - there's no substitute for testing on your specific use cases."
+- "The techniques we've covered today represent the cutting edge of prompting research, providing a significant advantage over basic approaches."

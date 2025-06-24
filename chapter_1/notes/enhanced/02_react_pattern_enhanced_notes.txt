@@ -1,0 +1,23 @@
+# ENHANCED SPEAKING NOTES: THE REACT PATTERN - WEATHER TOOL IMPLEMENTATION
+
+## HANDS-ON EXERCISE (Cell 17)
+### Conceptual Understanding
+- "Now it's your turn to extend the agent's capabilities with a custom weather tool."
+- "I've provided the implementation - a simple tool that takes a city name and returns mock weather data."
+- "Watch how our agent seamlessly incorporates this new capability, fetching weather for multiple cities in sequence."
+- "This extensibility is key to agent development - you can continually enhance capabilities by adding new tools."
+
+## WEATHER TOOL (Cell 18)
+### Conceptual Understanding
+- "The WeatherTool implementation demonstrates the consistent pattern we use for all tool development."
+- "Once implemented and added to the agent, it becomes immediately available for reasoning and action."
+- "This exercise reinforces the modular nature of our agent architecture - new capabilities can be added without changing the core system."
+
+### Implementation Details
+- "The WeatherTool class inherits from our base Tool class, maintaining the consistent interface."
+- "The constructor initializes the tool with name and description, and sets up a mock weather database."
+- "The execute method validates the city input, looks up weather data, and returns formatted results."
+- "Error handling provides friendly messages when cities aren't found in the database."
+- "After adding the tool to the agent, we run a test task requesting weather for multiple cities."
+- "The agent successfully identifies the need to check multiple locations and executes separate weather lookups."
+- "This demonstrates the agent's ability to incorporate new tools and use them appropriately without any changes to the core architecture."
